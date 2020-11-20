@@ -92,7 +92,7 @@ impl RemoteRefExtractor {
         let remote_msg = self.remote_ref_regex.replace(l, "").to_string().clone();
         self.remote_ref_regex
             .captures_iter(l)
-            .map(|m| (format!("https://{}/issues/{}", m.get(1).unwrap().as_str(), m.get(2).unwrap().as_str()), remote_msg.clone()))
+            .map(|m| (format!("https://github.com/{}/issues/{}", m.get(1).unwrap().as_str(), m.get(2).unwrap().as_str()), remote_msg.clone()))
             .collect::<Vec<(String, String)>>()
     }
 }
@@ -144,7 +144,10 @@ impl Extractor {
 }
 
 fn main() {
-    // TODO: use GH API
+    // TODO: use GH API instead of git CLI
+    // TODO: make references to the commits
+    // TODO: remote ref matcher should say from which repo it comes for cross-ref
+    // TODO: use GH API to extract issue names
     let args: Vec<String> = env::args().collect();
     let days = args
         .get(1)
@@ -172,7 +175,7 @@ fn main() {
     for issue in &issues {
         println!("{}", issue);
         map.get(issue).unwrap().iter().for_each(|msg| println!("• {}", msg));
-        println!("\n");
+        println!();
     }
 }
 
@@ -185,7 +188,7 @@ mod tests {
     fn test_remote_ref() {
         assert_eq!(
         RemoteRefExtractor::new().extract("ref org/repo#1375: some issue"),
-        vec![("https://org/repo/issues/1375".to_string(), "ref: some issue".to_string())]
+        vec![("https://github.com/org/repo/issues/1375".to_string(), "ref: some issue".to_string())]
         );
     }
 }
