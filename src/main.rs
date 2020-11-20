@@ -85,7 +85,7 @@ struct RemoteRefExtractor {
 
 impl RemoteRefExtractor {
     pub fn new() -> Self {
-        RemoteRefExtractor { remote_ref_regex: Regex::new(r" (github.com/.*)#([0-9]*)").unwrap() }
+        RemoteRefExtractor { remote_ref_regex: Regex::new(r" ([^/]+/[^#]+)#([0-9]*)").unwrap() }
     }
 
     fn extract(&self, l: &str) -> Vec<(String, String)> {
@@ -160,7 +160,7 @@ fn main() {
         }
         Err(_) => {
             eprintln!("Default config file not found: {}", config_file_loc.to_str().unwrap());
-            Config{ repo: vec![] }
+            Config { repo: vec![] }
         }
     };
 
@@ -173,5 +173,19 @@ fn main() {
         println!("{}", issue);
         map.get(issue).unwrap().iter().for_each(|msg| println!("• {}", msg));
         println!("\n");
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    // Note this useful idiom: importing names from outer (for mod tests) scope.
+    use super::*;
+
+    #[test]
+    fn test_remote_ref() {
+        assert_eq!(
+        RemoteRefExtractor::new().extract("ref org/repo#1375: some issue"),
+        vec![("https://org/repo/issues/1375".to_string(), "ref: some issue".to_string())]
+        );
     }
 }
