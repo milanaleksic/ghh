@@ -13,7 +13,6 @@ fn main() {
     // TODO: use GH API instead of git CLI
     // TODO: make references to the commits
     // TODO: remote ref matcher should say from which repo it comes for cross-ref
-    // TODO: use GH API to extract issue names
     let args: Vec<String> = env::args().collect();
     let days = args
         .get(1)
@@ -28,9 +27,11 @@ fn main() {
         .map(|k| k.clone())
         .collect::<Vec<String>>();
     issues.sort();
-    for issue in &issues {
-        println!("{}", issue);
-        issue_url_to_messages.get(issue).unwrap()
+    for issue_url in &issues {
+        let issue_details = issue_url_to_messages.get(issue_url).unwrap();
+        println!("*{}* ({})", issue_details.issue_title, issue_url);
+        issue_details
+            .messages
             .iter()
             .for_each(|msg| println!("• {}", msg));
         println!();

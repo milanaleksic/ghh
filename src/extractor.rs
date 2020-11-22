@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::config::{Config, Repo};
-use crate::refs::{LocalRefExtractor, RemoteRefExtractor};
+use crate::refs::{LocalRefExtractor, RemoteRefExtractor, Reference};
 use crate::github::Github;
 
 pub struct Extractor {
@@ -24,8 +24,14 @@ impl Extractor {
     }
 }
 
+pub struct IssueDetails {
+    pub issue_url: String,
+    pub issue_title: String,
+    pub messages: Vec<String>,
+}
+
 impl Extractor {
-    pub fn extract(&self) -> HashMap<String, Vec<String>> {
+    pub fn extract(&self) -> HashMap<String, IssueDetails> {
         let mut map = HashMap::new();
 
         &self.repos
@@ -36,16 +42,23 @@ impl Extractor {
                 return commits
                     .lines()
                     .flat_map(|l| {
-                        let mut list: Vec<(String, String)> = Vec::new();
+                        let mut list: Vec<Reference> = Vec::new();
                         list.append(&mut self.local_ref_extractor.extract(l, &url));
                         list.append(&mut self.remote_ref_extractor.extract(l));
                         list
                     })
-                    .collect::<Vec<(String, String)>>();
+                    .collect::<Vec<Reference>>();
             })
-            .for_each(|commit| {
-                let entry: &mut Vec<String> = map.entry(commit.0).or_insert(Vec::new());
-                entry.push(commit.1);
+            .for_each(|r| {
+                let entry: &mut IssueDetails = map.entry(r.full_issue_url.clone()).or_insert(IssueDetails{
+                    issue_url: r.full_issue_url.clone(),
+                    issue_title: String::new(),
+                    messages: vec![],
+                });
+                if entry.issue_title == "" {
+                    entry.issue_title = self.github.get_issue_name(r.full_issue_url.clone());
+                }
+                entry.messages.push(r.message);
             });
 
         map
