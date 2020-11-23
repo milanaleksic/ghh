@@ -14,8 +14,18 @@ fn main() {
     // TODO: make references to the commits
     // TODO: remote ref matcher should say from which repo it comes for cross-ref
     let args: Vec<String> = env::args().collect();
+    match args.get(1) {
+        Some(mode) => match mode.as_ref() {
+            "daily" => daily(&args[2..]),
+            _ => eprintln!("Please choose mode of working: daily, task-cleanup")
+        }
+        None => eprintln!("Please choose mode of working: daily, task-cleanup")
+    }
+}
+
+fn daily(args: &[String]) {
     let days = args
-        .get(1)
+        .get(0)
         .map_or(1, |a| a.parse().unwrap());
 
     let config = Config::parse();
