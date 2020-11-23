@@ -5,7 +5,10 @@ Utility application to help me with day-to-day work
 This utility is helping me to prepare remote standups:
 
 - can list commits done in X days, sorted and grouped based on issue id
-- more to come...
+  + `ghh daily <no>` where `<no>` is number of days to list commits of
+- delete old cards from github column
+  + `ghh task-cleanup <column_id> <days>` where we delete all cards 
+  from column `<column_id>` older than `<days>` days
 
 ## Configuration
 
@@ -22,9 +25,13 @@ Put this config file in file `$config/ghh/config.toml`
 Each repo must be a Github repo
 
 ```toml
+user_token = 'YOUR_PERSONAL_GITHUB_TOKEN'
+
 [[repo]]
 location = '/Users/milan/SourceCode/docs'
+author = 'My Name' # used to filter commits via `git --author xxx`
 
 [[repo]]
 location = '/Users/milan/SourceCode/terraform'
+author = 'My Name' # used to filter commits via `git --author xxx`
 ```

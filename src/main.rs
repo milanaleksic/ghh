@@ -3,11 +3,13 @@ use std::env;
 use config::Config;
 use extractor::Extractor;
 use crate::github::Github;
+use chrono::Utc;
 
 mod config;
 mod refs;
 mod extractor;
 mod github;
+mod date_serializer;
 
 fn main() {
     // TODO: use GH API instead of git CLI
@@ -17,10 +19,31 @@ fn main() {
     match args.get(1) {
         Some(mode) => match mode.as_ref() {
             "daily" => daily(&args[2..]),
+            "task-cleanup" => task_cleanup(&args[2..]),
             _ => eprintln!("Please choose mode of working: daily, task-cleanup")
         }
         None => eprintln!("Please choose mode of working: daily, task-cleanup")
     }
+}
+
+fn task_cleanup(args: &[String]) {
+    let column_id = args
+        .get(0)
+        .map_or(1, |a| a.parse().unwrap());
+    let days = args
+        .get(1)
+        .map_or(7, |a| a.parse().unwrap());
+    let config = Config::parse();
+    let github = Github::new(config.user_token.clone());
+    let cards = github.list_cards_on_board_column(column_id);
+    cards.iter().for_each(|c| {
+        if Utc::now().signed_duration_since(c.updated_at).num_days() < days {
+            eprintln!("Card with id {} updated recently at {}", c.id, c.updated_at)
+        } else {
+            eprintln!("Deleting old card with id {} last updated at {}", c.id, c.updated_at);
+            github.delete_card(c.id)
+        }
+    })
 }
 
 fn daily(args: &[String]) {

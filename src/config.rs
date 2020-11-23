@@ -33,15 +33,17 @@ impl Config {
 #[derive(Deserialize)]
 pub struct Repo {
     location: String,
+    author: String,
 }
 
 impl Clone for Repo {
     fn clone(&self) -> Self {
-        return Repo { location: self.location.clone() }
+        return Repo { location: self.location.clone(), author: self.author.clone() };
     }
 
     fn clone_from(&mut self, source: &Self) {
         self.location = source.location.clone();
+        self.author = source.author.clone();
     }
 }
 
@@ -74,7 +76,7 @@ impl Repo {
                 "--pretty=format:%s",
                 "--abbrev-commit",
                 "--author",
-                "Milan"
+                self.author.as_str(),
             ])
             .stdout(Stdio::piped())
             .spawn()
