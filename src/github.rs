@@ -6,9 +6,15 @@ use serde_derive::Deserialize;
 use crate::date_serializer;
 
 #[derive(Deserialize, Debug)]
-struct Issue {
-    id: u64,
-    title: String,
+pub struct Assignee {
+    pub login: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Issue {
+    pub number: u64,
+    pub title: String,
+    pub assignees: Vec<Assignee>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -16,6 +22,7 @@ pub struct Card {
     pub id: u64,
     #[serde(with = "date_serializer")]
     pub updated_at: DateTime<FixedOffset>,
+    pub content_url: String,
 }
 
 pub struct Github {
@@ -25,7 +32,7 @@ pub struct Github {
 impl Github {
     pub(crate) fn delete_card(&self, card_id: u64) {
         let request_url = format!("https://api.github.com/projects/columns/cards/{}", card_id);
-        eprintln!("Requesting GH DELETE URL: {}", request_url);
+        //eprintln!("Requesting GH DELETE URL: {}", request_url);
         let response = Client::new()
             .delete(&request_url)
             .basic_auth("", Some(self.user_token.clone()))
@@ -49,7 +56,7 @@ impl Github {
 
         loop {
             let request_url = format!("https://api.github.com/projects/columns/{}/cards", column_id);
-            eprintln!("Requesting GH GET URL: {}, page {}", request_url, page);
+            // eprintln!("Requesting GH GET URL: {}, page {}", request_url, page);
             let response = Client::new()
                 .get(&request_url)
                 .query(&[("page", page.to_string())])
@@ -77,9 +84,13 @@ impl Github {
         cards
     }
 
-    pub(crate) fn get_issue_name(&self, issue_url: String) -> String {
-        let request_url = issue_url.replace("github.com", "api.github.com/repos");
-        eprintln!("Requesting GH GET URL: {}", request_url);
+    pub(crate) fn get_issue(&self, issue_url: String) -> Option<Issue> {
+        let request_url = if issue_url.starts_with("https://api.github.com/repos") {
+            issue_url
+        } else {
+            issue_url.replace("github.com", "api.github.com/repos")
+        };
+        //eprintln!("Requesting GH GET URL: {}", request_url);
         let response = Client::new()
             .get(&request_url)
             .basic_auth("", Some(self.user_token.clone()))
@@ -90,11 +101,11 @@ impl Github {
         return match response.status() {
             StatusCode::OK => {
                 let issue: Issue = response.json().unwrap();
-                issue.title
+                Some(issue)
             }
             s => {
                 eprintln!("Received response status: {:?}", s);
-                String::new()
+                None
             }
         };
     }

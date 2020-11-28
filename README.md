@@ -9,6 +9,8 @@ This utility is helping me to prepare remote standups:
 - delete old cards from github column
   + `ghh task-cleanup <column_id> <days>` where we delete all cards 
   from column `<column_id>` older than `<days>` days
+- propose nice branch name based on the issues assigned to me (set up via `user_name`) in a column 
+  + `ghh branch-from-issue` and setup `in_progress_column` in config per repo
 
 ## Configuration
 
@@ -26,8 +28,11 @@ Each repo must be a Github repo
 
 ```toml
 user_token = 'YOUR_PERSONAL_GITHUB_TOKEN'
+user_name = 'milanaleksic'
 
 [[repo]]
+# columnId used for branch-from-issue
+in_progress_column = 1812763
 location = '/Users/milan/SourceCode/docs'
 author = 'My Name' # used to filter commits via `git --author xxx`
 

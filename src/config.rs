@@ -8,6 +8,7 @@ use serde_derive::Deserialize;
 pub struct Config {
     #[serde(alias = "repo")]
     pub repos: Vec<Repo>,
+    pub user_name: String,
     pub user_token: String,
 }
 
@@ -23,7 +24,12 @@ impl Config {
             }
             Err(_) => {
                 eprintln!("Default config file not found: {}", config_file_loc.to_str().unwrap());
-                Config { repos: vec![], user_token: "".to_string() }
+                // TODO: replace with Result response
+                Config {
+                    repos: vec![],
+                    user_token: "".to_string(),
+                    user_name: "".to_string(),
+                }
             }
         };
         config
@@ -32,18 +38,24 @@ impl Config {
 
 #[derive(Deserialize)]
 pub struct Repo {
-    location: String,
-    author: String,
+    pub location: String,
+    pub author: String,
+    pub in_progress_column: Option<i32>,
 }
 
 impl Clone for Repo {
     fn clone(&self) -> Self {
-        return Repo { location: self.location.clone(), author: self.author.clone() };
+        return Repo {
+            location: self.location.clone(),
+            author: self.author.clone(),
+            in_progress_column: self.in_progress_column.clone(),
+        };
     }
 
     fn clone_from(&mut self, source: &Self) {
         self.location = source.location.clone();
         self.author = source.author.clone();
+        self.in_progress_column = source.in_progress_column.clone();
     }
 }
 

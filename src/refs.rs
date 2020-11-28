@@ -51,14 +51,18 @@ impl RemoteRefExtractor {
 
 #[cfg(test)]
 mod tests {
-    // Note this useful idiom: importing names from outer (for mod tests) scope.
     use super::*;
 
     #[test]
     fn test_remote_ref() {
+        let vec1 = RemoteRefExtractor::new().extract("ref org/repo#1375: some issue");
         assert_eq!(
-            RemoteRefExtractor::new().extract("ref org/repo#1375: some issue"),
-            vec![("https://github.com/org/repo/issues/1375".to_string(), "ref: some issue".to_string())]
+            vec1.get(0).unwrap().message,
+            "ref: some issue".to_string(),
+        );
+        assert_eq!(
+            vec1.get(0).unwrap().full_issue_url,
+            "https://github.com/org/repo/issues/1375".to_string(),
         );
     }
 }

@@ -1,8 +1,8 @@
 use std::collections::HashMap;
 
 use crate::config::{Config, Repo};
-use crate::refs::{LocalRefExtractor, RemoteRefExtractor, Reference};
 use crate::github::Github;
+use crate::refs::{LocalRefExtractor, Reference, RemoteRefExtractor};
 
 pub struct Extractor {
     repos: Vec<Repo>,
@@ -50,13 +50,15 @@ impl Extractor {
                     .collect::<Vec<Reference>>();
             })
             .for_each(|r| {
-                let entry: &mut IssueDetails = map.entry(r.full_issue_url.clone()).or_insert(IssueDetails{
+                let entry: &mut IssueDetails = map.entry(r.full_issue_url.clone()).or_insert(IssueDetails {
                     issue_url: r.full_issue_url.clone(),
                     issue_title: String::new(),
                     messages: vec![],
                 });
                 if entry.issue_title == "" {
-                    entry.issue_title = self.github.get_issue_name(r.full_issue_url.clone());
+                    entry.issue_title = self.github.get_issue(r.full_issue_url.clone())
+                        .unwrap()
+                        .title;
                 }
                 entry.messages.push(r.message);
             });
