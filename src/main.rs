@@ -1,11 +1,15 @@
+use std::borrow::Borrow;
 use std::env;
+use std::path::PathBuf;
+
+use chrono::Utc;
+use regex::Regex;
 
 use config::Config;
 use extractor::Extractor;
-use crate::github::Github;
-use chrono::Utc;
+
 use crate::config::Repo;
-use regex::Regex;
+use crate::github::Github;
 
 mod config;
 mod refs;
@@ -34,53 +38,49 @@ fn main() {
 fn branch_from_issue(args: &[String]) {
     let config = Config::parse();
     let github = Github::new(config.user_token.clone());
-    let column = identify_active_repo(config, args);
-    match column {
-        Some(repo) => {
-            match repo.in_progress_column {
-                Some(column_id) => {
-                    let column_cards = github.list_cards_on_board_column(column_id);
-                    column_cards.iter()
-                        .filter_map(|c| {
-                            match github.get_issue(c.content_url.clone()) {
-                                Some(issue) => {
-                                    Some(issue)
-                                }
-                                None => {
-                                    eprintln!("Issue couldn't be downloaded: {}", c.content_url);
-                                    None
-                                }
-                            }
-                        })
-                        .filter(|i| {
-                            i.assignees.iter()
-                                .map(|a| a.login.clone())
-                                .any(|l| l.eq(&repo.author))
-                        })
-                        .for_each(|c| {
-                            println!("{}_{}", c.number, stupify(c.title))
-                        })
-                }
-                None => eprintln!("config for this repo doesn't have 'in_progress_column' set")
-            }
-        }
-        None => eprintln!("no known repo could be identified inside the current path")
-    }
+    let repo = identify_active_repo(config, args);
+    let author = repo.borrow().as_ref().ok().map(|a| a.author.clone());
+    repo
+        .and_then(|r| {
+            r.in_progress_column.ok_or(format!("repo {} doesn't have in_progress_column set", &r.location))
+        })
+        .map(|column_id| github.list_cards_on_board_column(column_id))
+        .map(|cards|
+            cards
+                .iter()
+                .filter_map(|c| github.get_issue(c.content_url.clone()))
+                .filter(|i| {
+                    i.assignees.iter()
+                        .map(|a| a.login.clone())
+                        .any(|l| l.eq(author.as_ref().unwrap().as_str()))
+                })
+                .for_each(|c| {
+                    println!("{}_{}", c.number, stupify(c.title))
+                })
+        )
+        .map_err(|err| eprintln!("Error: {}", err))
+        .ok();
 }
 
 fn stupify(title: String) -> String {
     Regex::new(r"[\W]+").unwrap().replace_all(title.to_lowercase().as_str(), "_").to_string()
 }
 
-fn identify_active_repo(config: Config, args: &[String]) -> Option<Repo> {
-    let active_repo_dir = args
+fn identify_active_repo(config: Config, args: &[String]) -> Result<Repo, String> {
+    args
         .get(0)
-        .map_or(env::current_dir().unwrap(), |a| a.parse().unwrap());
-    let path = active_repo_dir.to_str().unwrap();
-    config.repos.iter()
-        .filter(|r| r.location.starts_with(path))
-        .map(|r| r.clone())
-        .next()
+        .map_or(env::current_dir(), |a| Ok(PathBuf::from(a)))
+        .map_err(|err| err.to_string().clone())
+        .and_then(|d| d.to_str()
+            .ok_or(format!("failed to parse path {:?}", d).clone())
+            .map(|s| s.to_string())
+        )
+        .and_then(|path| {
+            config.repos.iter()
+                .filter(|r| r.location.starts_with(path.as_str()))
+                .map(|r| r.clone())
+                .next().ok_or(format!("No known (configured) repo matched {:?}", path).clone())
+        })
 }
 
 fn task_cleanup(args: &[String]) {
