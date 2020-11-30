@@ -23,7 +23,7 @@ impl Config {
                 toml::from_slice(contents.as_slice()).unwrap()
             }
             Err(_) => {
-                eprintln!("Default config file not found: {}", config_file_loc.to_str().unwrap());
+                log::error!("Default config file not found: {}", config_file_loc.to_str().unwrap());
                 // TODO: replace with Result response
                 Config {
                     repos: vec![],

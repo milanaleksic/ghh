@@ -32,7 +32,7 @@ pub struct Github {
 impl Github {
     pub(crate) fn delete_card(&self, card_id: u64) {
         let request_url = format!("https://api.github.com/projects/columns/cards/{}", card_id);
-        //eprintln!("Requesting GH DELETE URL: {}", request_url);
+        log::info!("Requesting GH DELETE URL: {}", request_url);
         let response = Client::new()
             .delete(&request_url)
             .basic_auth("", Some(self.user_token.clone()))
@@ -45,7 +45,7 @@ impl Github {
             StatusCode::OK => {
             }
             s => {
-                eprintln!("Received response status: {:?}", s);
+                log::error!("Received response status: {:?}", s);
             }
         };
     }
@@ -56,7 +56,7 @@ impl Github {
 
         loop {
             let request_url = format!("https://api.github.com/projects/columns/{}/cards", column_id);
-            // eprintln!("Requesting GH GET URL: {}, page {}", request_url, page);
+            log::info!("Requesting GH GET URL: {}, page {}", request_url, page);
             let response = Client::new()
                 .get(&request_url)
                 .query(&[("page", page.to_string())])
@@ -75,7 +75,7 @@ impl Github {
                     page += 1;
                 }
                 s => {
-                    eprintln!("Received response status: {:?}", s);
+                    log::error!("Received response status: {:?}", s);
                     break
                 }
             };
@@ -90,7 +90,7 @@ impl Github {
         } else {
             issue_url.replace("github.com", "api.github.com/repos")
         };
-        //eprintln!("Requesting GH GET URL: {}", request_url);
+        log::info!("Requesting GH GET URL: {}", request_url);
         let response = Client::new()
             .get(&request_url)
             .basic_auth("", Some(self.user_token.clone()))
@@ -104,7 +104,7 @@ impl Github {
                 Some(issue)
             }
             s => {
-                eprintln!("Received response status: {:?}", s);
+                log::error!("Received response status: {:?}", s);
                 None
             }
         };

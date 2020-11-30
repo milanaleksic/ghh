@@ -21,7 +21,6 @@ fn main() {
     // TODO: use GH API instead of git CLI
     // TODO: make references to the commits
     // TODO: remote ref matcher should say from which repo it comes for cross-ref
-    // TODO: logging
     // TODO: cli args library for auto-help etc
     let args: Vec<String> = env::args().collect();
     match args.get(1) {
@@ -29,9 +28,9 @@ fn main() {
             "daily" => daily(&args[2..]),
             "task-cleanup" => task_cleanup(&args[2..]),
             "branch-from-issue" => branch_from_issue(&args[2..]),
-            _ => eprintln!("Please choose mode of working: daily, task-cleanup, branch-from-issue")
+            _ => log::error!("Please choose mode of working: daily, task-cleanup, branch-from-issue"),
         }
-        None => eprintln!("Please choose mode of working: daily, task-cleanup, branch-from-issue")
+        None => log::error!("Please choose mode of working: daily, task-cleanup, branch-from-issue"),
     }
 }
 
@@ -58,7 +57,7 @@ fn branch_from_issue(args: &[String]) {
                     println!("{}_{}", c.number, stupify(c.title))
                 })
         )
-        .map_err(|err| eprintln!("Error: {}", err))
+        .map_err(|err| log::error!("Error: {}", err))
         .ok();
 }
 
@@ -95,9 +94,9 @@ fn task_cleanup(args: &[String]) {
     let cards = github.list_cards_on_board_column(column_id);
     cards.iter().for_each(|c| {
         if Utc::now().signed_duration_since(c.updated_at).num_days() < days {
-            eprintln!("Card with id {} updated recently at {}", c.id, c.updated_at)
+            log::info!("Card with id {} updated recently at {}", c.id, c.updated_at)
         } else {
-            eprintln!("Deleting old card with id {} last updated at {}", c.id, c.updated_at);
+            log::warn!("Deleting old card with id {} last updated at {}", c.id, c.updated_at);
             github.delete_card(c.id)
         }
     })
