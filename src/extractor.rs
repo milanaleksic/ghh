@@ -57,8 +57,12 @@ impl Extractor {
                 });
                 if entry.issue_title == "" {
                     entry.issue_title = self.github.get_issue(r.full_issue_url.clone())
-                        .unwrap()
-                        .title;
+                        .map(|i|i.title)
+                        .or_else(|| {
+                            log::error!("Seems that reference {} is wrong in message \"{}\"", r.full_issue_url, r.message);
+                            Some(String::from("???"))
+                        })
+                        .unwrap();
                 }
                 entry.messages.push(r.message);
             });

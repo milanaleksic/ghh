@@ -22,6 +22,7 @@ fn main() {
     // TODO: make references to the commits
     // TODO: remote ref matcher should say from which repo it comes for cross-ref
     // TODO: cli args library for auto-help etc
+    env_logger::init();
     let args: Vec<String> = env::args().collect();
     match args.get(1) {
         Some(mode) => match mode.as_ref() {
