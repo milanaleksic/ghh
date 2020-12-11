@@ -27,16 +27,16 @@ Put this config file in file `$config/ghh/config.toml`
 Each repo must be a Github repo
 
 ```toml
-user_token = 'YOUR_PERSONAL_GITHUB_TOKEN'
 user_name = 'milanaleksic'
+user_token = 'YOUR_PERSONAL_GITHUB_TOKEN'
 
 [[repo]]
 # columnId used for branch-from-issue
 in_progress_column = 1812763
 location = '/Users/milan/SourceCode/docs'
-author = 'My Name' # used to filter commits via `git --author xxx`
+author = 'My Name' # anything that can be used to filter commits via `git --author xxx`
 
 [[repo]]
 location = '/Users/milan/SourceCode/terraform'
-author = 'My Name' # used to filter commits via `git --author xxx`
+author = 'My Name' # anything that can be used to filter commits via `git --author xxx`
 ```

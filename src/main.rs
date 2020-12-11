@@ -1,4 +1,3 @@
-use std::borrow::Borrow;
 use std::env;
 use std::path::PathBuf;
 
@@ -10,6 +9,7 @@ use extractor::Extractor;
 
 use crate::config::Repo;
 use crate::github::Github;
+use std::borrow::Borrow;
 
 mod config;
 mod refs;
@@ -38,8 +38,8 @@ fn main() {
 fn branch_from_issue(args: &[String]) {
     let config = Config::parse();
     let github = Github::new(config.user_token.clone());
-    let repo = identify_active_repo(config, args);
-    let author = repo.borrow().as_ref().ok().map(|a| a.author.clone());
+    let repo = identify_active_repo(&config, args);
+    let author = &config.user_name.clone();
     repo
         .and_then(|r| {
             r.in_progress_column.ok_or(format!("repo {} doesn't have in_progress_column set", &r.location))
@@ -52,7 +52,7 @@ fn branch_from_issue(args: &[String]) {
                 .filter(|i| {
                     i.assignees.iter()
                         .map(|a| a.login.clone())
-                        .any(|l| l.eq(author.as_ref().unwrap().as_str()))
+                        .any(|l| l.eq(author.as_str()))
                 })
                 .for_each(|c| {
                     println!("{}_{}", c.number, stupify(c.title))
@@ -66,7 +66,7 @@ fn stupify(title: String) -> String {
     Regex::new(r"[\W]+").unwrap().replace_all(title.to_lowercase().as_str(), "_").to_string()
 }
 
-fn identify_active_repo(config: Config, args: &[String]) -> Result<Repo, String> {
+fn identify_active_repo(config: &Config, args: &[String]) -> Result<Repo, String> {
     args
         .get(0)
         .map_or(env::current_dir(), |a| Ok(PathBuf::from(a)))
