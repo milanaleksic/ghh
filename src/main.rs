@@ -9,7 +9,6 @@ use extractor::Extractor;
 
 use crate::config::Repo;
 use crate::github::Github;
-use std::borrow::Borrow;
 
 mod config;
 mod refs;
