@@ -2,15 +2,26 @@
 
 Utility application to help me with day-to-day work
 
-This utility is helping me to prepare remote standups:
+```
+ghh 0.0.0
+Milan Aleksić <milan@aleksic.dev>
 
-- can list commits done in X days, sorted and grouped based on issue id
-  + `ghh daily <no>` where `<no>` is number of days to list commits of
-- delete old cards from github column
-  + `ghh task-cleanup <column_id> <days>` where we delete all cards 
-  from column `<column_id>` older than `<days>` days
-- propose nice branch name based on the issues assigned to me (set up via `user_name`) in a column 
-  + `ghh branch-from-issue` and setup `in_progress_column` in config per repo
+USAGE:
+    ghh [FLAGS] <SUBCOMMAND>
+
+FLAGS:
+    -h, --help       Prints help information
+    -v, --verbose    A level of verbosity, and can be used multiple times
+    -V, --version    Prints version information
+
+SUBCOMMANDS:
+    branch-from-issue    Propose branch name based on actively assigned project cars in "done"
+                         column
+    daily                Give run-down of all things done in the commits during the previous
+                         <days>
+    help                 Prints this message or the help of the given subcommand(s)
+    task-cleanup         Remove old project cards by archiving them
+```
 
 ## Configuration
 
@@ -24,7 +35,7 @@ Put this config file in file `$config/ghh/config.toml`
 | macOS   | `$HOME`/Library/Application Support   | /Users/Alice/Library/Application Support |
 | Windows | `{FOLDERID_RoamingAppData}`           | C:\Users\Alice\AppData\Roaming           |
 
-Each repo must be a Github repo
+Each `repo` in the configuration must be a Github repo
 
 ```toml
 user_name = 'milanaleksic'
