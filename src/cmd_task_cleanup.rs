@@ -8,7 +8,7 @@ use crate::github::Github;
 #[derive(Clap)]
 pub(crate) struct TaskCleanup {
     /// what is the column id to cleanup?
-    #[clap(short, long, default_value = "1")]
+    #[clap(short, long)]
     column_id: i32,
 
     /// archive cards older than <days> days

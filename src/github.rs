@@ -42,7 +42,8 @@ impl Github {
             .unwrap();
 
         return match response.status() {
-            StatusCode::OK => {
+            StatusCode::OK | StatusCode::NO_CONTENT => {
+                log::info!("Card removed: {:?}", card_id);
             }
             s => {
                 log::error!("Received response status: {:?}", s);
