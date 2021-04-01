@@ -15,8 +15,8 @@ FLAGS:
     -V, --version    Prints version information
 
 SUBCOMMANDS:
-    branch-from-issue    Propose branch name based on actively assigned project cars in "done"
-                         column
+    branch-from-issue    Propose branch name based on actively assigned project cards in "In
+                         Progress" column
     daily                Give run-down of all things done in the commits during the previous
                          <days>
     help                 Prints this message or the help of the given subcommand(s)

@@ -7,7 +7,7 @@ use regex::Regex;
 use crate::config::{Config, Repo};
 use crate::github::Github;
 
-/// Propose branch name based on actively assigned project cars in "done" column
+/// Propose branch name based on actively assigned project cards in "In Progress" column
 #[derive(Clap)]
 pub(crate) struct BranchFromIssue {
     /// Which repo location should be parsed
