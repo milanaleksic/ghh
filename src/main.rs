@@ -10,6 +10,7 @@ mod date_serializer;
 mod cmd_branch_from_issue;
 mod cmd_task_cleanup;
 mod cmd_daily;
+mod cmd_epic_analysis;
 
 #[derive(Clap)]
 #[clap(version = "0.0.0", author = "Milan Aleksić <milan@aleksic.dev>")]
@@ -27,6 +28,7 @@ enum SubCommand {
     Daily(cmd_daily::Daily),
     TaskCleanup(cmd_task_cleanup::TaskCleanup),
     BranchFromIssue(cmd_branch_from_issue::BranchFromIssue),
+    EpicAnalysis(cmd_epic_analysis::EpicAnalysis),
 }
 
 fn main() {
@@ -40,5 +42,6 @@ fn main() {
         SubCommand::Daily(args) => args.run(),
         SubCommand::TaskCleanup(args) => args.run(),
         SubCommand::BranchFromIssue(args) => args.run(),
+        SubCommand::EpicAnalysis(args) => args.run(),
     }
 }
