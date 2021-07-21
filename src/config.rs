@@ -1,6 +1,8 @@
 use std::fs::File;
 use std::io::Read;
 use std::process::{Command, Stdio};
+use std::env;
+use std::path::PathBuf;
 
 use serde_derive::Deserialize;
 
@@ -33,6 +35,23 @@ impl Config {
             }
         };
         config
+    }
+
+    pub fn identify_active_repo(&self, repo: Option<String>) -> Result<Repo, String> {
+        repo
+            .clone()
+            .map_or(env::current_dir(), |a| Ok(PathBuf::from(a)))
+            .map_err(|err| err.to_string().clone())
+            .and_then(|d| d.to_str()
+                .ok_or(format!("failed to parse path {:?}", d).clone())
+                .map(|s| s.to_string())
+            )
+            .and_then(|path| {
+                self.repos.iter()
+                    .filter(|r| r.location.starts_with(path.as_str()))
+                    .map(|r| r.clone())
+                    .next().ok_or(format!("No known (configured) repo matched {:?}", path).clone())
+            })
     }
 }
 
