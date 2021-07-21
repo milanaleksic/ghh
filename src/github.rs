@@ -15,6 +15,7 @@ pub struct Issue {
     pub number: u64,
     pub title: String,
     pub assignees: Vec<Assignee>,
+    pub body: String,
 }
 
 #[derive(Deserialize, Debug, Clone)]
