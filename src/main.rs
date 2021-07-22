@@ -12,12 +12,16 @@ mod cmd_task_cleanup;
 mod cmd_daily;
 mod cmd_epic_analysis;
 
+// TODO: do not hardcode
+const VERSION: &str = "1.0.0";
+
 #[derive(Clap)]
-#[clap(version = "0.0.0", author = "Milan Aleksić <milan@aleksic.dev>")]
+#[clap(version = VERSION, author = "Milan Aleksić <milan@aleksic.dev>")]
 struct Opts {
     /// A level of verbosity, and can be used multiple times
     #[clap(short, long, parse(from_occurrences))]
     verbose: i32,
+
     /// action to run
     #[clap(subcommand)]
     action: SubCommand,

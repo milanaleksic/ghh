@@ -1,10 +1,11 @@
 use std::collections::{HashMap, HashSet};
+use std::rc::Rc;
 
 use clap::Clap;
 
 use crate::config::Config;
 use crate::github::{Github, Issue};
-use crate::refs::LocalRefExtractor;
+use crate::refs::{LocalRefExtractor, Reference};
 
 /// Remove old project cards by archiving them
 #[derive(Clap)]
@@ -32,18 +33,43 @@ pub(crate) struct EpicAnalysis {
     /// if active, GraphViz diagram code will be placed in stdout
     #[clap(long)]
     graph: bool,
-
 }
 
 impl EpicAnalysis {
-    pub(crate) fn run(&self) {
+    pub(crate) fn run(self) {
+        Logic::new(self).run()
+    }
+}
+
+struct Logic {
+    cmd: Rc<EpicAnalysis>,
+    node_titles: HashMap<u64, String>,
+    cluster_members: HashMap<String, HashSet<u64>>,
+    issue_graph: HashMap<u64, HashSet<u64>>,
+    closed_issues: HashSet<u64>,
+    issues_outside_milestone: HashSet<u64>,
+}
+
+impl Logic {
+    pub fn new(cmd: EpicAnalysis) -> Self {
+        Logic {
+            cmd: Rc::new(cmd),
+            node_titles: HashMap::new(),
+            cluster_members: HashMap::new(),
+            issue_graph: HashMap::new(),
+            closed_issues: HashSet::new(),
+            issues_outside_milestone: HashSet::new(),
+        }
+    }
+
+    pub(crate) fn run(&mut self) {
         let config = Config::parse();
         let local_ref_extractor = LocalRefExtractor::new();
         let github = Github::new(config.user_token.clone());
-        let repo = config.identify_active_repo(self.repo.clone()).unwrap();
+        let repo = config.identify_active_repo(self.cmd.repo.clone()).unwrap();
 
         let repo_url = repo.extract_repo();
-        let epic_url = format!("{}/issues/{}", repo_url, self.epic_id);
+        let epic_url = format!("{}/issues/{}", repo_url, self.cmd.epic_id);
         let epic_issue = github
             .get_issue(epic_url.clone())
             .ok_or(String::from(format!("Could not get issue {}", epic_url.clone())))
@@ -51,51 +77,82 @@ impl EpicAnalysis {
         let refs = local_ref_extractor.extract(epic_issue.body.as_str(), &repo_url);
         log::info!("References found in epic: {}", refs.len());
 
-        let mut node_titles = HashMap::new();
-        let mut cluster_members = HashMap::new();
-        let mut issue_graph = HashMap::new();
-        refs.iter().for_each(|r| {
-            let issue = github
-                .get_issue(r.full_issue_url.clone())
-                .ok_or(String::from(format!("Could not get issue {}", epic_url.clone())))
-                .unwrap();
+        let internal_refs = refs.iter().map(|r|r.number).collect::<HashSet<u64>>();
 
-            issue.labels.iter().for_each(|l| {
-                if self.label_component.contains(&l.name) {
-                    cluster_members.entry(l.name.clone())
-                        .or_insert(HashSet::new())
-                        .insert(r.number.clone());
-                }
-            });
-
-            node_titles.entry(issue.number.clone()).or_insert(issue.title.clone());
-            let blocked_lines = issue.body.lines().filter(|l| l.starts_with(&self.prefix_blocked)).collect::<Vec<_>>();
-            self.validate_blocked_label_state(&issue, &blocked_lines);
-            blocked_lines.iter().for_each(|l| {
-                local_ref_extractor.extract(l, &repo_url)
-                    .iter()
-                    .for_each(|fr| {
-                        issue_graph.entry(fr.number.clone())
-                            .or_insert(HashSet::new())
-                            .insert(r.number.clone());
-                    });
-            });
+        refs.iter()
+            .for_each(|r| {
+            let issue = self.fetch_issue(&github, &epic_url, r, false);
+            issue.body
+                .lines()
+                .filter(|l| l.starts_with(&self.cmd.prefix_blocked))
+                .collect::<Vec<_>>()
+                .iter()
+                .for_each(|l| {
+                    local_ref_extractor.extract(l, &repo_url)
+                        .iter()
+                        .for_each(|fr| {
+                            self.fetch_issue(&github, &epic_url, fr, internal_refs.contains(&fr.number));
+                            self.issue_graph.entry(fr.number.clone())
+                                .or_insert(HashSet::new())
+                                .insert(r.number.clone());
+                        });
+                });
+            self.validate_blocked_label_state(&issue);
             self.validate_milestone(&epic_issue, &issue);
         });
 
-        if self.graph {
-            self.build_graph(node_titles, cluster_members, issue_graph);
+        if self.cmd.graph {
+            self.build_graph();
         }
     }
 
-    fn validate_blocked_label_state(&self, re: &Issue, blocked_lines: &Vec<&str>) {
-        if !blocked_lines.is_empty() {
-            if !re.labels.iter().any(|l| l.name == self.label_blocked) {
-                log::error!("Issue {} does not have blocked label '{}' but it blocks on something", re.number, self.label_blocked)
+    fn fetch_issue(&mut self,
+                   github: &Github,
+                   epic_url: &String,
+                   r: &Reference,
+                   from_outside: bool,
+    ) -> Issue {
+        let issue = github
+            .get_issue(r.full_issue_url.clone())
+            .ok_or(String::from(format!("Could not get issue {}", epic_url.clone())))
+            .unwrap();
+
+        if from_outside {
+            self.issues_outside_milestone.insert(issue.number);
+        }
+
+        if issue.closed_at.is_some() {
+            self.closed_issues.insert(issue.number);
+        }
+
+        issue.labels.iter().for_each(|l| {
+            if self.cmd.label_component.contains(&l.name) {
+                self.cluster_members.entry(l.name.clone())
+                    .or_insert(HashSet::new())
+                    .insert(r.number.clone());
+            }
+        });
+
+        self.node_titles.entry(issue.number.clone()).or_insert(issue.title.clone());
+        issue
+    }
+
+    fn validate_blocked_label_state(&self,
+                                    re: &Issue,
+    ) {
+        let has_blockages = self.issue_graph
+            .iter()
+            .filter(|sat| sat.1.contains(&re.number))
+            .filter(|sat| !self.closed_issues.contains(&sat.0))
+            .next()
+            .is_some();
+        if has_blockages {
+            if !re.labels.iter().any(|l| l.name == self.cmd.label_blocked) {
+                log::error!("Issue {} does not have blocked label '{}' but it blocks on something", re.number, self.cmd.label_blocked)
             }
         } else {
-            if re.labels.iter().any(|l| l.name == self.label_blocked) {
-                log::error!("Issue {} has blocked label '{}' but no upstream blockages found", re.number, self.label_blocked)
+            if re.labels.iter().any(|l| l.name == self.cmd.label_blocked) {
+                log::error!("Issue {} has blocked label '{}' but no upstream blockages found", re.number, self.cmd.label_blocked)
             }
         }
     }
@@ -105,7 +162,7 @@ impl EpicAnalysis {
             let epic_issue_milestone = &m.title;
             if issue.milestone.is_none() {
                 log::error!("Issue {} does not belong to the same milestone '{}' as the epic issue", issue.number, epic_issue_milestone);
-                return
+                return;
             }
             issue.milestone.iter().for_each(|m_issue| {
                 if &m_issue.title != epic_issue_milestone {
@@ -115,18 +172,14 @@ impl EpicAnalysis {
         })
     }
 
-    fn build_graph(&self,
-                   node_titles: HashMap<u64, String>,
-                   cluster_members: HashMap<String, HashSet<u64>>,
-                   issue_graph: HashMap<u64, HashSet<u64>>
-    ) {
+    fn build_graph(&self) {
         println!("digraph {{ ");
-        issue_graph.iter().for_each(|g| {
+        self.issue_graph.iter().for_each(|g| {
             g.1.iter().for_each(|fr| {
                 println!("{} -> {};", g.0, fr);
             });
         });
-        cluster_members.iter().for_each(|c| {
+        self.cluster_members.iter().for_each(|c| {
             let cluster_name = format!("{}", c.0);
             println!("subgraph \"cluster{}\" {{", cluster_name);
             c.1.iter().for_each(|issue_id| {
@@ -135,16 +188,32 @@ impl EpicAnalysis {
             println!("label=\"{}\";", cluster_name);
             println!("}}");
         });
-        node_titles.iter().for_each(|n| {
-            node_titles.get(n.0).iter().for_each(|title| {
-                let title = title.replace("`", "");
+        self.node_titles.iter().for_each(|n| {
+            self.node_titles.get(n.0).iter().for_each(|title| {
+                let title = title
+                    .replace("`", "")
+                    .replace("<", "")
+                    .replace(">", "");
                 let len = title.len();
                 let max1 = if len > 10 { 10 } else { len };
                 let max2 = if len > 20 { 20 } else { len };
                 let max3 = if len > 30 { 30 } else { len };
                 let max4 = if len > 40 { 40 } else { len };
-                println!("{} [label=<issue #{}<BR /><FONT POINT-SIZE='12' color='blue'>{}<BR />{}<BR />{}<BR />{}</FONT>>]",
+                let style = if self.closed_issues.contains(n.0) {
+                    "style=filled,color=gray90,"
+                } else {
+                    ""
+                };
+                let external = if self.issues_outside_milestone.contains(n.0) {
+                    "EXTERNAL<BR/> "
+                } else {
+                    ""
+                };
+                println!("{} [{}label=<{}issue #{}<BR />\
+                <FONT POINT-SIZE='12' color='gray20'>{}<BR />{}<BR />{}<BR />{}</FONT>>]",
                          n.0,
+                         style,
+                         external,
                          n.0,
                          title[0..max1].to_string(),
                          title[max1..max2].to_string(),

@@ -29,6 +29,7 @@ pub struct Issue {
     pub body: String,
     pub labels: Vec<Label>,
     pub milestone: Option<Milestone>,
+    pub closed_at: Option<String>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
