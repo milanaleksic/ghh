@@ -3,6 +3,7 @@ use regex::Regex;
 pub struct Reference {
     pub full_issue_url: String,
     pub message: String,
+    pub number: u64,
 }
 
 pub struct LocalRefExtractor {
@@ -18,9 +19,13 @@ impl LocalRefExtractor {
         let local_msg = self.local_ref_regex.replace(l, "").to_string().clone();
         self.local_ref_regex
             .captures_iter(l)
-            .map(|m| Reference {
-                full_issue_url: format!("{}/issues/{}", url, m.get(1).unwrap().as_str()),
-                message: local_msg.clone(),
+            .map(|m| {
+                let issue = m.get(1).unwrap();
+                Reference {
+                    full_issue_url: format!("{}/issues/{}", url, issue.as_str()),
+                    message: local_msg.clone(),
+                    number: issue.as_str().parse().unwrap(),
+                }
             })
             .collect::<Vec<Reference>>()
     }
@@ -39,11 +44,15 @@ impl RemoteRefExtractor {
         let remote_msg = self.remote_ref_regex.replace(l, "").to_string().clone();
         self.remote_ref_regex
             .captures_iter(l)
-            .map(|m| Reference {
-                full_issue_url: format!("https://github.com/{}/issues/{}",
-                                        m.get(1).unwrap().as_str(),
-                                        m.get(2).unwrap().as_str()),
-                message: remote_msg.clone(),
+            .map(|m| {
+                let issue = m.get(2).unwrap();
+                Reference {
+                    full_issue_url: format!("https://github.com/{}/issues/{}",
+                                            m.get(1).unwrap().as_str(),
+                                            issue.as_str()),
+                    message: remote_msg.clone(),
+                    number: issue.as_str().parse().unwrap(),
+                }
             })
             .collect::<Vec<Reference>>()
     }

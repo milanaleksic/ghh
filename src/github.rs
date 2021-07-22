@@ -11,11 +11,24 @@ pub struct Assignee {
 }
 
 #[derive(Deserialize, Debug)]
+pub struct Label {
+    pub name: String,
+    pub color: String,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Milestone {
+    pub title: String,
+}
+
+#[derive(Deserialize, Debug)]
 pub struct Issue {
     pub number: u64,
     pub title: String,
     pub assignees: Vec<Assignee>,
     pub body: String,
+    pub labels: Vec<Label>,
+    pub milestone: Option<Milestone>,
 }
 
 #[derive(Deserialize, Debug, Clone)]
