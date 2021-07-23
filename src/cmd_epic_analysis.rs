@@ -91,7 +91,7 @@ impl Logic {
                     local_ref_extractor.extract(l, &repo_url)
                         .iter()
                         .for_each(|fr| {
-                            self.fetch_issue(&github, &epic_url, fr, internal_refs.contains(&fr.number));
+                            self.fetch_issue(&github, &epic_url, fr, !internal_refs.contains(&fr.number));
                             self.issue_graph.entry(fr.number.clone())
                                 .or_insert(HashSet::new())
                                 .insert(r.number.clone());
