@@ -77,32 +77,33 @@ impl Logic {
         let refs = local_ref_extractor.extract(epic_issue.body.as_str(), &repo_url);
         log::info!("References found in epic: {}", refs.len());
 
-        let internal_refs = refs.iter().map(|r|r.number).collect::<HashSet<u64>>();
+        let internal_refs = refs.iter().map(|r| r.number).collect::<HashSet<u64>>();
 
         refs.iter()
             .for_each(|r| {
-            let issue = self.fetch_issue(&github, &epic_url, r, false);
-            issue.body
-                .lines()
-                .filter(|l| l.starts_with(&self.cmd.prefix_blocked))
-                .collect::<Vec<_>>()
-                .iter()
-                .for_each(|l| {
-                    local_ref_extractor.extract(l, &repo_url)
-                        .iter()
-                        .for_each(|fr| {
-                            self.fetch_issue(&github, &epic_url, fr, !internal_refs.contains(&fr.number));
-                            self.issue_graph.entry(fr.number.clone())
-                                .or_insert(HashSet::new())
-                                .insert(r.number.clone());
-                        });
-                });
-            self.validate_blocked_label_state(&issue);
-            self.validate_milestone(&epic_issue, &issue);
-        });
+                let issue = self.fetch_issue(&github, &epic_url, r, false);
+                issue.body
+                    .lines()
+                    .filter(|l| l.starts_with(&self.cmd.prefix_blocked))
+                    .collect::<Vec<_>>()
+                    .iter()
+                    .for_each(|l| {
+                        local_ref_extractor.extract(l, &repo_url)
+                            .iter()
+                            .for_each(|fr| {
+                                self.fetch_issue(&github, &epic_url, fr, !internal_refs.contains(&fr.number));
+                                self.issue_graph.entry(fr.number.clone())
+                                    .or_insert(HashSet::new())
+                                    .insert(r.number.clone());
+                            });
+                    });
+                self.validate_blocked_label_state(&issue);
+                self.validate_milestone(&epic_issue, &issue);
+            });
 
         if self.cmd.graph {
-            self.build_graph();
+            let unblocked_issues = self.find_unblocked_issues(internal_refs);
+            self.build_graph(unblocked_issues);
         }
     }
 
@@ -172,7 +173,7 @@ impl Logic {
         })
     }
 
-    fn build_graph(&self) {
+    fn build_graph(&self, unblocked_issues: HashSet<u64>) {
         println!("digraph {{ ");
         self.issue_graph.iter().for_each(|g| {
             g.1.iter().for_each(|fr| {
@@ -201,8 +202,10 @@ impl Logic {
                 let max4 = if len > 40 { 40 } else { len };
                 let style = if self.closed_issues.contains(n.0) {
                     "style=filled,color=gray90,"
-                } else {
+                } else if unblocked_issues.contains(n.0) {
                     ""
+                } else {
+                    "style=filled,color=indianred1,"
                 };
                 let external = if self.issues_outside_milestone.contains(n.0) {
                     "EXTERNAL<BR/> "
@@ -223,5 +226,17 @@ impl Logic {
             })
         });
         println!("}} ");
+    }
+
+    fn find_unblocked_issues(&self, internal_refs: HashSet<u64>) -> HashSet<u64> {
+        let mut unblocked_issues = internal_refs.clone();
+        self.issue_graph.iter().for_each(|g| {
+            g.1.iter().for_each(|fr| {
+                if !self.closed_issues.contains(g.0) {
+                    unblocked_issues.remove(fr);
+                }
+            });
+        });
+        unblocked_issues
     }
 }
