@@ -13,13 +13,13 @@ pub struct Extractor {
 }
 
 impl Extractor {
-    pub fn new(config: Config, days: i32, github: Github) -> Self {
+    pub fn new(config: Config, days: i32) -> Self {
         Extractor {
             repos: config.repos.to_vec(),
             days,
             remote_ref_extractor: RemoteRefExtractor::new(),
             local_ref_extractor: LocalRefExtractor::new(),
-            github,
+            github: config.github(),
         }
     }
 }

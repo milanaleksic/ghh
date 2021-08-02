@@ -65,7 +65,7 @@ impl Logic {
     pub(crate) fn run(&mut self) {
         let config = Config::parse();
         let local_ref_extractor = LocalRefExtractor::new();
-        let github = Github::new(config.user_token.clone());
+        let github = config.github();
         let repo = config.identify_active_repo(self.cmd.repo.clone()).unwrap();
 
         let repo_url = repo.extract_repo();

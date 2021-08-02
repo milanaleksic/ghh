@@ -2,7 +2,6 @@ use clap::Clap;
 
 use crate::config::Config;
 use crate::extractor::Extractor;
-use crate::github::Github;
 
 /// Give run-down of all things done in the commits during the previous <days>
 #[derive(Clap)]
@@ -15,8 +14,7 @@ pub(crate) struct Daily {
 impl Daily {
     pub(crate) fn run(&self) {
         let config = Config::parse();
-        let github = Github::new(config.user_token.clone());
-        let extractor = Extractor::new(config, self.days, github);
+        let extractor = Extractor::new(config, self.days);
         let issue_url_to_messages = extractor.extract();
 
         let mut issues = issue_url_to_messages.keys()

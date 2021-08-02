@@ -5,13 +5,14 @@ use std::env;
 use std::path::PathBuf;
 
 use serde_derive::Deserialize;
+use crate::github::Github;
 
 #[derive(Deserialize)]
 pub struct Config {
     #[serde(alias = "repo")]
     pub repos: Vec<Repo>,
     pub user_name: String,
-    pub user_token: String,
+    user_token: String,
 }
 
 impl Config {
@@ -53,12 +54,16 @@ impl Config {
                     .next().ok_or(format!("No known (configured) repo matched {:?}", path).clone())
             })
     }
+
+    pub fn github(&self) -> Github {
+        return Github::new(self.user_token.clone())
+    }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct Repo {
-    pub location: String,
-    pub author: String,
+    location: String,
+    author: String,
     pub in_progress_column: Option<i32>,
 }
 

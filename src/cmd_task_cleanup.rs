@@ -2,7 +2,6 @@ use chrono::Utc;
 use clap::Clap;
 
 use crate::config::Config;
-use crate::github::Github;
 
 /// Remove old project cards by archiving them
 #[derive(Clap)]
@@ -19,7 +18,7 @@ pub(crate) struct TaskCleanup {
 impl TaskCleanup {
     pub(crate) fn run(&self) {
         let config = Config::parse();
-        let github = Github::new(config.user_token.clone());
+        let github = config.github();
         let cards = github.list_cards_on_board_column(self.column_id);
         cards.iter().for_each(|c| {
             let since = Utc::now().signed_duration_since(c.updated_at).num_days() as i32;
