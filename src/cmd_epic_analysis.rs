@@ -1,3 +1,4 @@
+use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
 use std::rc::Rc;
 
@@ -6,6 +7,7 @@ use clap::Clap;
 use crate::config::Config;
 use crate::github::{Github, Issue};
 use crate::refs::{LocalRefExtractor, Reference};
+use std::collections::hash_map::Entry::Occupied;
 
 /// Remove old project cards by archiving them
 #[derive(Clap)]
@@ -66,45 +68,60 @@ impl Logic {
         let config = Config::parse();
         let local_ref_extractor = LocalRefExtractor::new();
         let github = config.github();
-        let repo = config.identify_active_repo(self.cmd.repo.clone()).unwrap();
-
-        let repo_url = repo.extract_repo();
+        let repo_url = config.identify_active_repo(self.cmd.repo.clone()).unwrap().extract_repo();
         let epic_url = format!("{}/issues/{}", repo_url, self.cmd.epic_id);
         let epic_issue = github
             .get_issue(epic_url.clone())
             .ok_or(String::from(format!("Could not get issue {}", epic_url.clone())))
             .unwrap();
         let refs = local_ref_extractor.extract(epic_issue.body.as_str(), &repo_url);
+        let internal_refs = refs.iter().map(|r| r.number).collect::<HashSet<u64>>();
+        let issue_cache: RefCell<HashMap<String, Rc<Issue>>> = RefCell::new(HashMap::new());
+
         log::info!("References found in epic: {}", refs.len());
 
-        let internal_refs = refs.iter().map(|r| r.number).collect::<HashSet<u64>>();
-
-        refs.iter()
-            .for_each(|r| {
-                let issue = self.fetch_issue(&github, &epic_url, r, false);
-                issue.body
-                    .lines()
-                    .filter(|l| l.starts_with(&self.cmd.prefix_blocked))
-                    .collect::<Vec<_>>()
-                    .iter()
-                    .for_each(|l| {
-                        local_ref_extractor.extract(l, &repo_url)
-                            .iter()
-                            .for_each(|fr| {
-                                self.fetch_issue(&github, &epic_url, fr, !internal_refs.contains(&fr.number));
-                                self.issue_graph.entry(fr.number.clone())
-                                    .or_insert(HashSet::new())
-                                    .insert(r.number.clone());
-                            });
-                    });
-                self.validate_blocked_label_state(&issue);
-                self.validate_milestone(&epic_issue, &issue);
-            });
+        for r in refs.iter() {
+            let issue = self.cached_fetch_issue(&github, &epic_url, &issue_cache, r, false);
+            let lines_with_blocked_prefix = issue.body
+                .lines()
+                .filter(|l| l.starts_with(&self.cmd.prefix_blocked))
+                .collect::<Vec<_>>();
+            for l in lines_with_blocked_prefix {
+                for fr in local_ref_extractor.extract(l, &repo_url) {
+                    self.cached_fetch_issue(&github, &epic_url, &issue_cache, &fr, !internal_refs.contains(&fr.number));
+                    self.issue_graph.entry(fr.number.clone())
+                        .or_insert(HashSet::new())
+                        .insert(r.number.clone());
+                }
+            }
+            self.validate_blocked_label_state(&issue);
+            self.validate_milestone(&epic_issue, &issue);
+        }
 
         if self.cmd.graph {
             let unblocked_issues = self.find_unblocked_issues(internal_refs);
             self.build_graph(unblocked_issues);
         }
+    }
+
+    fn cached_fetch_issue(&mut self,
+                          github: &Github,
+                          epic_url: &String,
+                          issue_cache: &RefCell<HashMap<String, Rc<Issue>>>,
+                          r: &Reference,
+                          external: bool
+    ) -> Rc<Issue> {
+        let issue: Rc<Issue> = {
+            let mut ref_mut = issue_cache.borrow_mut();
+            let e = ref_mut
+                .entry(r.full_issue_url.clone());
+            if let Occupied(_) = e {
+                log::info!("Using from cache issue {}", r.full_issue_url);
+            }
+            e.or_insert_with(|| Rc::new(self.fetch_issue(&github, &epic_url, r, external)))
+                .clone()
+        };
+        issue
     }
 
     fn fetch_issue(&mut self,
@@ -138,9 +155,7 @@ impl Logic {
         issue
     }
 
-    fn validate_blocked_label_state(&self,
-                                    re: &Issue,
-    ) {
+    fn validate_blocked_label_state(&self, re: &Issue) {
         let has_blockages = self.issue_graph
             .iter()
             .filter(|sat| sat.1.contains(&re.number))
