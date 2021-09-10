@@ -338,7 +338,7 @@ dependencies = [
 
 [[package]]
 name = "ghh"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "chrono",
  "clap",
