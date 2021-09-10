@@ -3,7 +3,7 @@ use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::Entry::Occupied;
 use std::rc::Rc;
 
-use clap::Clap;
+use clap::{ArgSettings, Clap};
 
 use crate::config::Config;
 use crate::github::{Github, Issue};
@@ -21,7 +21,7 @@ pub(crate) struct EpicAnalysis {
     repo: Option<String>,
 
     /// Which labels should be processed as "components" and thus trigger subgraph grouping
-    #[clap(long)]
+    #[clap(long, setting = ArgSettings::MultipleOccurrences)]
     label_component: Vec<String>,
 
     /// Which label should be used as "blocked" indicator
