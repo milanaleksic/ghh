@@ -1,5 +1,6 @@
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
+use std::collections::hash_map::Entry::Occupied;
 use std::rc::Rc;
 
 use clap::Clap;
@@ -7,7 +8,6 @@ use clap::Clap;
 use crate::config::Config;
 use crate::github::{Github, Issue};
 use crate::refs::{LocalRefExtractor, Reference};
-use std::collections::hash_map::Entry::Occupied;
 
 /// Remove old project cards by archiving them
 #[derive(Clap)]
@@ -81,14 +81,14 @@ impl Logic {
         log::info!("References found in epic: {}", refs.len());
 
         for r in refs.iter() {
-            let issue = self.cached_fetch_issue(&github, &epic_url, &issue_cache, r, false);
+            let issue = self.cached_fetch_issue(&github, &issue_cache, r, false);
             let lines_with_blocked_prefix = issue.body
                 .lines()
                 .filter(|l| l.starts_with(&self.cmd.prefix_blocked))
                 .collect::<Vec<_>>();
             for l in lines_with_blocked_prefix {
                 for fr in local_ref_extractor.extract(l, &repo_url) {
-                    self.cached_fetch_issue(&github, &epic_url, &issue_cache, &fr, !internal_refs.contains(&fr.number));
+                    self.cached_fetch_issue(&github, &issue_cache, &fr, !internal_refs.contains(&fr.number));
                     self.issue_graph.entry(fr.number.clone())
                         .or_insert(HashSet::new())
                         .insert(r.number.clone());
@@ -106,10 +106,9 @@ impl Logic {
 
     fn cached_fetch_issue(&mut self,
                           github: &Github,
-                          epic_url: &String,
                           issue_cache: &RefCell<HashMap<String, Rc<Issue>>>,
                           r: &Reference,
-                          external: bool
+                          external: bool,
     ) -> Rc<Issue> {
         let issue: Rc<Issue> = {
             let mut ref_mut = issue_cache.borrow_mut();
@@ -118,7 +117,7 @@ impl Logic {
             if let Occupied(_) = e {
                 log::info!("Using from cache issue {}", r.full_issue_url);
             }
-            e.or_insert_with(|| Rc::new(self.fetch_issue(&github, &epic_url, r, external)))
+            e.or_insert_with(|| Rc::new(self.fetch_issue(&github, r, external)))
                 .clone()
         };
         issue
@@ -126,13 +125,11 @@ impl Logic {
 
     fn fetch_issue(&mut self,
                    github: &Github,
-                   epic_url: &String,
                    r: &Reference,
                    from_outside: bool,
     ) -> Issue {
         let issue = github
             .get_issue(r.full_issue_url.clone())
-            .ok_or(String::from(format!("Could not get issue {}", epic_url.clone())))
             .unwrap();
 
         if from_outside {

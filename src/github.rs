@@ -116,8 +116,13 @@ impl Github {
 
         return match response.status() {
             StatusCode::OK => {
-                let issue: Issue = response.json().unwrap();
-                Some(issue)
+                match response.json() {
+                    Ok(issue)=> Some(issue),
+                    Err(_) => {
+                        log::error!("No content from issue {}, check if contents is set; can't continue further", &request_url);
+                        None
+                    }
+                }
             }
             s => {
                 log::error!("Received response status: {:?}", s);
