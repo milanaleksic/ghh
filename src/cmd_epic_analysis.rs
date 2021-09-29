@@ -82,12 +82,25 @@ impl Logic {
 
         for r in refs.iter() {
             let issue = self.cached_fetch_issue(&github, &issue_cache, r, false);
-            let lines_with_blocked_prefix = issue.body
-                .lines()
+            let mut lines_with_deps = issue.body.lines()
                 .filter(|l| l.starts_with(&self.cmd.prefix_blocked))
                 .collect::<Vec<_>>();
-            for l in lines_with_blocked_prefix {
+            let mut encountered = false;
+            for line in issue.body.lines() {
+                if line.starts_with(&self.cmd.prefix_blocked) {
+                    encountered = true;
+                } else if encountered {
+                    if line.starts_with("-") {
+                        lines_with_deps.push(line);
+                    } else {
+                        break;
+                    }
+                }
+            }
+            let lines_with_deps = &lines_with_deps;
+            for l in lines_with_deps {
                 for fr in local_ref_extractor.extract(l, &repo_url) {
+                    log::info!("Reference to a blocking issue found: {}->{}", fr.number.clone(), r.number.clone());
                     self.cached_fetch_issue(&github, &issue_cache, &fr, !internal_refs.contains(&fr.number));
                     self.issue_graph.entry(fr.number.clone())
                         .or_insert(HashSet::new())
