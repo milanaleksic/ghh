@@ -13,7 +13,7 @@ mod cmd_daily;
 mod cmd_epic_analysis;
 
 // TODO: do not hardcode
-const VERSION: &str = "1.0.3";
+const VERSION: &str = "1.0.4";
 
 #[derive(Clap)]
 #[clap(version = VERSION, author = "Milan Aleksić <milan@aleksic.dev>")]
