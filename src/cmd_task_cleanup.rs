@@ -1,10 +1,10 @@
 use chrono::Utc;
-use clap::Clap;
+use clap::Parser;
 
 use crate::config::Config;
 
 /// Remove old project cards by archiving them
-#[derive(Clap)]
+#[derive(Parser)]
 pub(crate) struct TaskCleanup {
     /// what is the column id to cleanup?
     #[clap(short, long)]

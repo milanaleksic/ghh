@@ -3,14 +3,14 @@ use std::collections::{HashMap, HashSet};
 use std::collections::hash_map::Entry::Occupied;
 use std::rc::Rc;
 
-use clap::{ArgSettings, Clap};
+use clap::{ArgSettings, Parser};
 
 use crate::config::Config;
 use crate::github::{Github, Issue};
 use crate::refs::{LocalRefExtractor, Reference};
 
 /// Remove old project cards by archiving them
-#[derive(Clap)]
+#[derive(Parser)]
 pub(crate) struct EpicAnalysis {
     /// What is the epic ID?
     #[clap(short, long)]

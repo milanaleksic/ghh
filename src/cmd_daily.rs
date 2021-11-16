@@ -1,10 +1,10 @@
-use clap::Clap;
+use clap::Parser;
 
 use crate::config::Config;
 use crate::extractor::Extractor;
 
 /// Give run-down of all things done in the commits during the previous <days>
-#[derive(Clap)]
+#[derive(Parser)]
 pub(crate) struct Daily {
     /// how many days to go into history
     #[clap(short, long, default_value = "1")]

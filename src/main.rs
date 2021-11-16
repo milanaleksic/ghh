@@ -1,4 +1,4 @@
-use clap::Clap;
+use clap::Parser;
 use log::LevelFilter::{Debug, Info};
 use env_logger::Builder;
 
@@ -15,7 +15,7 @@ mod cmd_epic_analysis;
 // TODO: do not hardcode
 const VERSION: &str = "1.0.4";
 
-#[derive(Clap)]
+#[derive(Parser)]
 #[clap(version = VERSION, author = "Milan Aleksić <milan@aleksic.dev>")]
 struct Opts {
     /// A level of verbosity, and can be used multiple times
@@ -27,7 +27,7 @@ struct Opts {
     action: SubCommand,
 }
 
-#[derive(Clap)]
+#[derive(Parser)]
 enum SubCommand {
     Daily(cmd_daily::Daily),
     TaskCleanup(cmd_task_cleanup::TaskCleanup),

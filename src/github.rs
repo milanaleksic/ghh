@@ -2,7 +2,6 @@ use chrono::{DateTime, FixedOffset};
 use reqwest::blocking::Client;
 use reqwest::StatusCode;
 use serde_derive::Deserialize;
-use crate::config::Repo;
 
 use crate::date_serializer;
 
@@ -108,7 +107,7 @@ impl Github {
         cards
     }
 
-    pub(crate) fn get_owned_issue(&self, repo: &Repo, assignee: &String) -> Option<IssueSearchResult> {
+    pub(crate) fn get_owned_issue(&self, assignee: &String) -> Option<IssueSearchResult> {
         let request_url = "https://api.github.com/search/issues";
         log::info!("Requesting GH GET URL: {}", request_url);
         let response = Client::new()

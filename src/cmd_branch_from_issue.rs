@@ -1,12 +1,12 @@
 use std::collections::HashSet;
 
-use clap::Clap;
+use clap::Parser;
 use regex::Regex;
 
 use crate::config::Config;
 
 /// Propose branch name based on actively assigned project cards in "In Progress" column
-#[derive(Clap)]
+#[derive(Parser)]
 pub(crate) struct BranchFromIssue {
     /// Which repo location should be parsed
     #[clap(short)]
@@ -19,7 +19,7 @@ impl BranchFromIssue {
         let github = config.github();
         let repo = config.identify_active_repo(self.repo.clone());
         let author = &config.user_name.clone();
-        let owned_issues = github.get_owned_issue(&repo.clone().unwrap(), &config.user_name.clone());
+        let owned_issues = github.get_owned_issue(&config.user_name.clone());
         if owned_issues.is_none() {
             log::info!("No owned issues found");
             return;
@@ -39,8 +39,8 @@ impl BranchFromIssue {
                 cards
                     .iter()
                     .filter(|c| {
-                        let issueNumber = c.content_url.split("/").last().unwrap();
-                        interesting_issues.contains(&issueNumber.parse::<u64>().unwrap())
+                        let issue_number = c.content_url.split("/").last().unwrap();
+                        interesting_issues.contains(&issue_number.parse::<u64>().unwrap())
                     })
                     .filter_map(|c| github.get_issue(c.content_url.clone()))
                     .filter(|i| {
