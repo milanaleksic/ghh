@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use clap::Clap;
 use regex::Regex;
 
@@ -17,6 +19,15 @@ impl BranchFromIssue {
         let github = config.github();
         let repo = config.identify_active_repo(self.repo.clone());
         let author = &config.user_name.clone();
+        let owned_issues = github.get_owned_issue(&repo.clone().unwrap(), &config.user_name.clone());
+        if owned_issues.is_none() {
+            log::info!("No owned issues found");
+            return;
+        }
+        let interesting_issues: HashSet<u64> = owned_issues.unwrap().items.into_iter()
+            .map(|i| i.number)
+            .collect();
+        log::info!("Got {} owned issues", interesting_issues.len());
         repo.and_then(|r| {
             r.in_progress_column.ok_or(format!(
                 "repo {:?} doesn't have in_progress_column set",
@@ -27,6 +38,10 @@ impl BranchFromIssue {
             .map(|cards| {
                 cards
                     .iter()
+                    .filter(|c| {
+                        let issueNumber = c.content_url.split("/").last().unwrap();
+                        interesting_issues.contains(&issueNumber.parse::<u64>().unwrap())
+                    })
                     .filter_map(|c| github.get_issue(c.content_url.clone()))
                     .filter(|i| {
                         i.assignees

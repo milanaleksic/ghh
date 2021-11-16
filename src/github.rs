@@ -2,6 +2,7 @@ use chrono::{DateTime, FixedOffset};
 use reqwest::blocking::Client;
 use reqwest::StatusCode;
 use serde_derive::Deserialize;
+use crate::config::Repo;
 
 use crate::date_serializer;
 
@@ -40,6 +41,11 @@ pub struct Card {
     pub content_url: String,
 }
 
+#[derive(Deserialize, Debug)]
+pub struct IssueSearchResult {
+    pub items: Vec<Issue>,
+}
+
 pub struct Github {
     user_token: String,
 }
@@ -69,13 +75,14 @@ impl Github {
     pub(crate) fn list_cards_on_board_column(&self, column_id: i32) -> Vec<Card> {
         let mut cards = Vec::new();
         let mut page = 1;
+        let per_page = 100;
 
         loop {
             let request_url = format!("https://api.github.com/projects/columns/{}/cards", column_id);
             log::info!("Requesting GH GET URL: {}, page {}", request_url, page);
             let response = Client::new()
                 .get(&request_url)
-                .query(&[("page", page.to_string())])
+                .query(&[("page", page.to_string()), ("per_page", per_page.to_string())])
                 .basic_auth("", Some(self.user_token.clone()))
                 .header("User-Agent", "ghh")// mandatory or we get 403!
                 .header("Accept", "application/vnd.github.inertia-preview+json")
@@ -84,10 +91,11 @@ impl Github {
             match response.status() {
                 StatusCode::OK => {
                     let mut page_cards: Vec<Card> = response.json().unwrap();
-                    if page_cards.is_empty() {
+                    log::info!("received {} cards", page_cards.len());
+                    cards.append(&mut page_cards);
+                    if page_cards.len() < per_page {
                         break;
                     }
-                    cards.append(&mut page_cards);
                     page += 1;
                 }
                 s => {
@@ -99,6 +107,36 @@ impl Github {
 
         cards
     }
+
+    pub(crate) fn get_owned_issue(&self, repo: &Repo, assignee: &String) -> Option<IssueSearchResult> {
+        let request_url = "https://api.github.com/search/issues";
+        log::info!("Requesting GH GET URL: {}", request_url);
+        let response = Client::new()
+            .get(request_url)
+            .query(&[("q", format!("is:open is:issue assignee:{}", assignee))])
+            .basic_auth("", Some(self.user_token.clone()))
+            .header("User-Agent", "ghh")// mandatory or we get 403!
+            .header("Accept", "application/vnd.github.v3+json")
+            .send()
+            .unwrap();
+
+        return match response.status() {
+            StatusCode::OK => {
+                match response.json() {
+                    Ok(issues)=> Some(issues),
+                    Err(_) => {
+                        log::error!("No content from issue {}, check if contents is set; can't continue further", &request_url);
+                        None
+                    }
+                }
+            }
+            s => {
+                log::error!("Received response status: {:?}", s);
+                None
+            }
+        };
+    }
+
 
     pub(crate) fn get_issue(&self, issue_url: String) -> Option<Issue> {
         let request_url = if issue_url.starts_with("https://api.github.com/repos") {
