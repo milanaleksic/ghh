@@ -4,6 +4,7 @@ use clap::Parser;
 use regex::Regex;
 
 use crate::config::Config;
+use crate::github::Issue;
 
 /// Propose branch name based on actively assigned project cards in "In Progress" column
 #[derive(Parser)]
@@ -11,6 +12,10 @@ pub(crate) struct BranchFromIssue {
     /// Which repo location should be parsed
     #[clap(short)]
     repo: Option<String>,
+
+    /// if set, only active issues will be shown (the ones present as cards in in_progress_column)
+    #[clap(long)]
+    only_active_column: bool,
 }
 
 impl BranchFromIssue {
@@ -24,35 +29,43 @@ impl BranchFromIssue {
             log::info!("No owned issues found");
             return;
         }
-        let interesting_issues: HashSet<u64> = owned_issues.unwrap().items.into_iter()
-            .map(|i| i.number)
-            .collect();
-        log::info!("Got {} owned issues", interesting_issues.len());
-        repo.and_then(|r| {
-            r.in_progress_column.ok_or(format!(
-                "repo {:?} doesn't have in_progress_column set",
-                r
-            ))
-        })
-            .map(|column_id| github.list_cards_on_board_column(column_id))
-            .map(|cards| {
-                cards
+        let my_issues = owned_issues.unwrap().items;
+        log::info!("Got {} owned issues", my_issues.len());
+        let issues = if self.only_active_column {
+            let interesting_issues: HashSet<u64> = my_issues.into_iter()
+                .map(|i| i.number)
+                .collect();
+            repo
+                .and_then(|r| {
+                    r.in_progress_column.ok_or(format!(
+                        "repo {:?} doesn't have in_progress_column set",
+                        r
+                    ))
+                })
+                .map(|column_id| {
+                    github.list_cards_on_board_column(column_id)
+                        .iter()
+                        .filter(|c| {
+                            let issue_number = c.content_url.split("/").last().unwrap();
+                            interesting_issues.contains(&issue_number.parse::<u64>().unwrap())
+                        })
+                        .filter_map(|c| github.get_issue(c.content_url.clone()))
+                        .collect::<Vec<Issue>>()
+                })
+                .map_err(|err| log::error!("Error: {}", err))
+                .ok()
+                .unwrap()
+        } else {
+            my_issues
+        };
+        issues.iter()
+            .filter(|i| {
+                i.assignees
                     .iter()
-                    .filter(|c| {
-                        let issue_number = c.content_url.split("/").last().unwrap();
-                        interesting_issues.contains(&issue_number.parse::<u64>().unwrap())
-                    })
-                    .filter_map(|c| github.get_issue(c.content_url.clone()))
-                    .filter(|i| {
-                        i.assignees
-                            .iter()
-                            .map(|a| a.login.clone())
-                            .any(|l| l.eq(author.as_str()))
-                    })
-                    .for_each(|c| println!("{}_{}", c.number, BranchFromIssue::stupify(c.title)))
+                    .map(|a| a.login.clone())
+                    .any(|l| l.eq(author.as_str()))
             })
-            .map_err(|err| log::error!("Error: {}", err))
-            .ok();
+            .for_each(|c| println!("{}_{}", c.number, BranchFromIssue::stupify(c.title.clone())));
     }
 
     fn stupify(title: String) -> String {
