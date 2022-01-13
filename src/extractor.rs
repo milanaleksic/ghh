@@ -37,7 +37,7 @@ impl Extractor {
         &self.repos
             .iter()
             .flat_map(|r| {
-                let url = r.extract_repo();
+                let url = r.extract_repo_url();
                 let commits = r.extract_commits(self.days);
                 return commits
                     .lines()

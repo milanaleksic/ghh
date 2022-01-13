@@ -68,7 +68,7 @@ impl Logic {
         let config = Config::parse();
         let local_ref_extractor = LocalRefExtractor::new();
         let github = config.github();
-        let repo_url = config.identify_active_repo(self.cmd.repo.clone()).unwrap().extract_repo();
+        let repo_url = config.identify_active_repo(self.cmd.repo.clone()).unwrap().extract_repo_url();
         let epic_url = format!("{}/issues/{}", repo_url, self.cmd.epic_id);
         let epic_issue = github
             .get_issue(epic_url.clone())

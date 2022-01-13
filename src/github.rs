@@ -107,12 +107,12 @@ impl Github {
         cards
     }
 
-    pub(crate) fn get_owned_issue(&self, assignee: &String) -> Option<IssueSearchResult> {
+    pub(crate) fn get_owned_issue(&self, assignee: &String, repo: &String) -> Option<IssueSearchResult> {
         let request_url = "https://api.github.com/search/issues";
         log::info!("Requesting GH GET URL: {}", request_url);
         let response = Client::new()
             .get(request_url)
-            .query(&[("q", format!("is:open is:issue assignee:{}", assignee))])
+            .query(&[("q", format!("is:open is:issue assignee:{} repo:{}", assignee, repo))])
             .basic_auth("", Some(self.user_token.clone()))
             .header("User-Agent", "ghh")// mandatory or we get 403!
             .header("Accept", "application/vnd.github.v3+json")

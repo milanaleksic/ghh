@@ -1,10 +1,11 @@
+use std::env;
 use std::fs::File;
 use std::io::Read;
-use std::process::{Command, Stdio};
-use std::env;
 use std::path::PathBuf;
+use std::process::{Command, Stdio};
 
 use serde_derive::Deserialize;
+
 use crate::github::Github;
 
 #[derive(Deserialize)]
@@ -56,7 +57,7 @@ impl Config {
     }
 
     pub fn github(&self) -> Github {
-        return Github::new(self.user_token.clone())
+        return Github::new(self.user_token.clone());
     }
 }
 
@@ -84,7 +85,27 @@ impl Clone for Repo {
 }
 
 impl Repo {
-    pub fn extract_repo(&self) -> String {
+    pub fn extract_repo_name(&self) -> String {
+        let output = Command::new("git")
+            .current_dir(&self.location)
+            .args("remote get-url --push origin".split(" "))
+            .stdout(Stdio::piped())
+            .spawn()
+            .expect("Failed to start echo process")
+            .wait_with_output()
+            .expect("Failed to extract the origin URL");
+        let remote_url = output
+            .stdout
+            .to_vec();
+        return String::from_utf8(remote_url)
+            .expect("Wrong output encoding")
+            .replace("git@github.com:", "")
+            .replace("https://github.com/", "")
+            .replace("\n", "")
+            .replace(".git", "");
+    }
+
+    pub fn extract_repo_url(&self) -> String {
         let output = Command::new("git")
             .current_dir(&self.location)
             .args("remote get-url --push origin".split(" "))

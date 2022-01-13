@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use clap::Parser;
 use regex::Regex;
 
-use crate::config::Config;
+use crate::config::{Config, Repo};
 use crate::github::Issue;
 
 /// Propose branch name based on actively assigned project cards in "In Progress" column
@@ -22,10 +22,14 @@ impl BranchFromIssue {
     pub(crate) fn run(&self) {
         let config = Config::parse();
         let github = config.github();
-        let repo = config.identify_active_repo(self.repo.clone());
         let author = &config.user_name.clone();
-        let owned_issues = github.get_owned_issue(&config.user_name.clone());
-        if owned_issues.is_none() {
+        let owned_issues = self.get_repo(&config)
+            .and_then(|r|
+                github
+                    .get_owned_issue(&config.user_name.clone(), &r.extract_repo_name())
+                    .ok_or(String::from("Repo not identified"))
+            );
+        if owned_issues.is_err() {
             log::info!("No owned issues found");
             return;
         }
@@ -35,7 +39,7 @@ impl BranchFromIssue {
             let interesting_issues: HashSet<u64> = my_issues.into_iter()
                 .map(|i| i.number)
                 .collect();
-            repo
+            self.get_repo(&config)
                 .and_then(|r| {
                     r.in_progress_column.ok_or(format!(
                         "repo {:?} doesn't have in_progress_column set",
@@ -66,6 +70,10 @@ impl BranchFromIssue {
                     .any(|l| l.eq(author.as_str()))
             })
             .for_each(|c| println!("{}_{}", c.number, BranchFromIssue::stupify(c.title.clone())));
+    }
+
+    fn get_repo(&self, config: &Config) -> Result<Repo, String> {
+        config.identify_active_repo(self.repo.clone())
     }
 
     fn stupify(title: String) -> String {
