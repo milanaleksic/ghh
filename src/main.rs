@@ -14,7 +14,7 @@ mod cmd_epic_analysis;
 mod jira;
 
 // TODO: do not hardcode
-const VERSION: &str = "1.0.5";
+const VERSION: &str = "1.0.6";
 
 #[derive(Parser)]
 #[clap(version = VERSION, author = "Milan Aleksić <milan@aleksic.dev>")]
