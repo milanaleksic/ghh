@@ -40,6 +40,10 @@ Each `repo` in the configuration must be a Github repo
 ```toml
 user_name = 'milanaleksic'
 user_token = 'YOUR_PERSONAL_GITHUB_TOKEN'
+# in case you are using JIRA for issue tracking instead of GH
+jira_username = "my_jira_username"
+jira_url = "https://cloud-jira.atlassian.net"
+jira_token = "my_api_token"
 
 [[repo]]
 # columnId used for branch-from-issue
@@ -48,6 +52,8 @@ location = '/Users/milan/SourceCode/docs'
 author = 'My Name' # anything that can be used to filter commits via `git --author xxx`
 
 [[repo]]
+# optional: if set then we will use JIRA for some supported features like branch-from-issue
+uses_jira = true
 location = '/Users/milan/SourceCode/terraform'
 author = 'My Name' # anything that can be used to filter commits via `git --author xxx`
 ```

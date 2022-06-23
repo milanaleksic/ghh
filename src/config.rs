@@ -7,6 +7,7 @@ use std::process::{Command, Stdio};
 use serde_derive::Deserialize;
 
 use crate::github::Github;
+use crate::jira::Jira;
 
 #[derive(Deserialize)]
 pub struct Config {
@@ -14,6 +15,10 @@ pub struct Config {
     pub repos: Vec<Repo>,
     pub user_name: String,
     user_token: String,
+    // to support JIRA as issue store
+    jira_token: String,
+    jira_username: String,
+    jira_url: String,
 }
 
 impl Config {
@@ -32,7 +37,10 @@ impl Config {
                 Config {
                     repos: vec![],
                     user_token: "".to_string(),
+                    jira_token: "".to_string(),
+                    jira_username: "".to_string(),
                     user_name: "".to_string(),
+                    jira_url: "".to_string()
                 }
             }
         };
@@ -59,6 +67,10 @@ impl Config {
     pub fn github(&self) -> Github {
         return Github::new(self.user_token.clone());
     }
+
+    pub fn jira(&self) -> Jira {
+        return Jira::new(self.jira_username.clone(), self.jira_url.clone(), self.jira_token.clone());
+    }
 }
 
 #[derive(Deserialize, Debug)]
@@ -66,6 +78,7 @@ pub struct Repo {
     location: String,
     author: String,
     pub in_progress_column: Option<i32>,
+    pub uses_jira: Option<bool>,
 }
 
 impl Clone for Repo {
@@ -74,6 +87,7 @@ impl Clone for Repo {
             location: self.location.clone(),
             author: self.author.clone(),
             in_progress_column: self.in_progress_column.clone(),
+            uses_jira: self.uses_jira.clone(),
         };
     }
 

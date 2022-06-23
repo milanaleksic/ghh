@@ -11,6 +11,7 @@ mod cmd_branch_from_issue;
 mod cmd_task_cleanup;
 mod cmd_daily;
 mod cmd_epic_analysis;
+mod jira;
 
 // TODO: do not hardcode
 const VERSION: &str = "1.0.5";
