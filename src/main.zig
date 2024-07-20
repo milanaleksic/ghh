@@ -1,6 +1,6 @@
 const std = @import("std");
 const process = std.process;
-const tomlz = @import("tomlz");
+const config = @import("config.zig");
 
 pub fn main() !void {
     var args = process.args();
@@ -14,15 +14,10 @@ pub fn main() !void {
     defer arena.deinit();
 
     const allocator = arena.allocator();
-    var table = try tomlz.parse(allocator,
-        \\foo = 1
-        \\bar = 2
-    );
-    defer table.deinit(allocator);
 
-    std.debug.print("value of foo is {d}", .{table.getInteger("foo").?});
-}
+    // TODO: figure out the default config path for the system
+    var app_config = try config.parseConfig(allocator, "/Users/milan/Library/Application Support/ghh/config.toml");
+    defer app_config.deinit();
 
-test "aaa" {
-    try std.testing.expectEqual(54578, 54578);
+    std.debug.print("value of jira_username is {s}\n", .{app_config.jira.username});
 }

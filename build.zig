@@ -73,4 +73,18 @@ pub fn build(b: *std.Build) void {
     // running the unit tests.
     const test_step = b.step("test", "Run unit tests");
     test_step.dependOn(&run_exe_unit_tests.step);
+
+    // This is where the interesting part begins.
+    // As you can see we are re-defining the same
+    // executable but we're binding it to a
+    // dedicated build step.
+    const exe_check = b.addExecutable(.{
+        .name = "build-check",
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+    exe_check.root_module.addImport("tomlz", mod);
+    const check = b.step("check", "Check if build-check compiles");
+    check.dependOn(&exe_check.step);
 }
