@@ -25,3 +25,15 @@ jobs:
           packages: zig
           script: |
             zig build test
+      - name: Send mail on failure
+        if: ${{ failure() || cancelled() }}
+        uses: https://github.com/dawidd6/action-send-mail@v3
+        with:
+          connection_url: ${{secrets.EMAIL_CONNECTION_URL}}
+          subject: Gitea Actions job failure
+          to: milanaleksic@gmail.com
+          from: Gitea Actions
+          body: |
+            Build job of ${{github.repository}} failed!
+            
+            More information: https://git.milanaleksic.net/${{ github.repository }}/actions/runs/${{ github.run_id }}

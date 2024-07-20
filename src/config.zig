@@ -175,5 +175,5 @@ test "parses non-empty config with optionals" {
     try std.testing.expectEqual(cf.repos.items[0].gh_in_progress_column, 0);
     try std.testing.expectEqual(cf.repos.items[0].uses_jira, false);
     try std.testing.expectEqualSlices(u8, cf.repos.items[0].location, "/Users/xxx/projects/ghh");
-    try std.testing.expectEqualSlices(u8, cf.repos.items[0].author, "User");
+    try std.testing.expectEqualSlices(u8, cf.repos.items[0].author, "Usera");
 }
