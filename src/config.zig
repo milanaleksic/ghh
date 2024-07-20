@@ -17,6 +17,7 @@ const GithubConfig = struct {
 
 const JiraConfig = struct {
     const Self = @This();
+
     username: string,
     token: string,
     url: string,
@@ -109,18 +110,70 @@ fn openFile(allocator: std.mem.Allocator, inputFile: string) !string {
     return buffer;
 }
 
-pub fn parseConfig(allocator: std.mem.Allocator, inputFile: string) !Config {
-    // TODO: handle missing config file
-    const config_data = try openFile(allocator, inputFile);
-    defer allocator.free(config_data);
-
+fn parserConfigString(allocator: std.mem.Allocator, input: string) !Config {
     // TODO: handle invalid TOML syntax
-    var table = try tomlz.parse(allocator, config_data);
+    var table = try tomlz.parse(allocator, input);
     defer table.deinit(allocator);
 
     return try Config.init(allocator, table);
 }
 
-test "aaa" {
-    try std.testing.expectEqual(54578, 54578);
+pub fn parseConfig(allocator: std.mem.Allocator, inputFile: string) !Config {
+    // TODO: handle missing config file
+    const config_data = try openFile(allocator, inputFile);
+    defer allocator.free(config_data);
+
+    return try parserConfigString(allocator, config_data);
+}
+
+test "parses non-empty config" {
+    var cf = try parserConfigString(std.testing.allocator,
+        \\ user_name = "ghuser"
+        \\ user_token = "ghp_***"
+        \\ jira_username = "test@test.com"
+        \\ jira_url = "https://repo.atlassian.net"
+        \\ jira_token = "jira_***"
+        \\ [[repo]]
+        \\ uses_jira = true
+        \\ in_progress_column = 1000
+        \\ location = '/Users/xxx/projects/ghh'
+        \\ author = 'User'
+    );
+    defer cf.deinit();
+
+    try std.testing.expectEqualSlices(u8, cf.github.username, "ghuser");
+    try std.testing.expectEqualSlices(u8, cf.github.token, "ghp_***");
+    try std.testing.expectEqualSlices(u8, cf.jira.username, "test@test.com");
+    try std.testing.expectEqualSlices(u8, cf.jira.url, "https://repo.atlassian.net");
+    try std.testing.expectEqualSlices(u8, cf.jira.token, "jira_***");
+    try std.testing.expectEqual(cf.repos.items.len, 1);
+    try std.testing.expectEqual(cf.repos.items[0].gh_in_progress_column, 1000);
+    try std.testing.expectEqual(cf.repos.items[0].uses_jira, true);
+    try std.testing.expectEqualSlices(u8, cf.repos.items[0].location, "/Users/xxx/projects/ghh");
+    try std.testing.expectEqualSlices(u8, cf.repos.items[0].author, "User");
+}
+
+test "parses non-empty config with optionals" {
+    var cf = try parserConfigString(std.testing.allocator,
+        \\ user_name = "ghuser"
+        \\ user_token = "ghp_***"
+        \\ jira_username = "test@test.com"
+        \\ jira_url = "https://repo.atlassian.net"
+        \\ jira_token = "jira_***"
+        \\ [[repo]]
+        \\ location = '/Users/xxx/projects/ghh'
+        \\ author = 'User'
+    );
+    defer cf.deinit();
+
+    try std.testing.expectEqualSlices(u8, cf.github.username, "ghuser");
+    try std.testing.expectEqualSlices(u8, cf.github.token, "ghp_***");
+    try std.testing.expectEqualSlices(u8, cf.jira.username, "test@test.com");
+    try std.testing.expectEqualSlices(u8, cf.jira.url, "https://repo.atlassian.net");
+    try std.testing.expectEqualSlices(u8, cf.jira.token, "jira_***");
+    try std.testing.expectEqual(cf.repos.items.len, 1);
+    try std.testing.expectEqual(cf.repos.items[0].gh_in_progress_column, 0);
+    try std.testing.expectEqual(cf.repos.items[0].uses_jira, false);
+    try std.testing.expectEqualSlices(u8, cf.repos.items[0].location, "/Users/xxx/projects/ghh");
+    try std.testing.expectEqualSlices(u8, cf.repos.items[0].author, "User");
 }
