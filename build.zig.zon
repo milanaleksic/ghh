@@ -4,8 +4,8 @@
     .minimum_zig_version = "0.12.0",
     .dependencies = .{
         .tomlz = .{
-            .url = "https://github.com/milanaleksic/tomlz/archive/d648d7e3c62afd7002f91688aeb8bd353bea12cc.tar.gz",
-            .hash = "1220e1aecfa5804be35976cbbd8087ff07defbc3ffba393b869050d1b820640f9147",
+            .url = "https://github.com/mattyhall/tomlz/archive/9a16dd53927ef2012478b6494bafb4475e44f4c9.tar.gz",
+            .hash = "12204f922cab84980e36b5c058d354ec0ee169bda401c8e0e80a463580349b476569",
         },
     },
     .paths = .{

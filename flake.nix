@@ -1,24 +1,51 @@
 {
   description = "GHH";
+
   inputs = {
-    # 0.12.0 is on revision 07c88f35d25ba5d0fff5074900582ce89c0d6ad0
-    # look at: https://lazamar.co.uk/nix-versions/?package=zig
-    nixpkgs-zig-pinned.url = "github:NixOS/nixpkgs/07c88f35d25ba5d0fff5074900582ce89c0d6ad0";
+    nixpkgs.url = "github:NixOS/nixpkgs/nixos-24.05";
     flake-utils.url = "github:numtide/flake-utils";
+
+    zig-overlay = {
+      url = "github:mitchellh/zig-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    zls = {
+      url = "github:zigtools/zls/0.13.0";
+      inputs = {
+        nixpkgs.follows = "nixpkgs";
+        flake-utils.follows = "flake-utils";
+        zig-overlay.follows = "zig-overlay";
+      };
+    };
   };
-  outputs = { self, nixpkgs-zig-pinned, flake-utils }:
-    flake-utils.lib.eachDefaultSystem (system: {
-        devShell =
-          with nixpkgs-zig-pinned.legacyPackages.${system};
-          mkShell {
-            buildInputs = [
-              nixpkgs-zig-pinned.legacyPackages.${system}.zig
-              nixpkgs-zig-pinned.legacyPackages.${system}.zls
-              nixpkgs-zig-pinned.legacyPackages.${system}.lldb
-            ];
-            shellHook = ''
-              '';
-          };
+
+  outputs =
+    { self
+    , nixpkgs
+    , flake-utils
+    , zig-overlay
+    , zls
+    , ...
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
+      let
+        pkgs = import nixpkgs { inherit system; };
+        zigpkg = zig-overlay.packages.${system}."0.13.0";
+        zlspkg = zls.packages.${system}.zls;
+      in
+      {
+        devShells.default = pkgs.mkShell {
+          nativeBuildInputs = with pkgs; [
+            zigpkg
+            zlspkg
+          ];
+
+          hardeningDisable = [ "all" ];
+        };
+
+        devShell = self.devShells.${system}.default;
       }
-  );
+    );
 }
