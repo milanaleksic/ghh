@@ -89,6 +89,7 @@ pub const Repo = struct {
     const Self = @This();
 
     gh_in_progress_column: i64,
+    // TODO: replace with a proper enum
     uses_jira: bool,
     location: string,
     author: string,
