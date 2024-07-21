@@ -30,7 +30,7 @@ pub fn main() !void {
     const path = work_dir(allocator);
     defer allocator.free(path);
 
-    if (match_repo(app_config, path)) |repo| {
+    if (app_config.match_repo(path)) |repo| {
         std.debug.print("Repo details found: {any}\n", .{repo});
     } else {
         std.debug.print("No repo config found in {s} for {s}\n", .{config_path, path});
@@ -45,13 +45,4 @@ fn work_dir(allocator: std.mem.Allocator) string {
         const current_dir = std.fs.cwd();
         return current_dir.realpathAlloc(allocator, ".") catch "unknown";
     };
-}
-
-fn match_repo(app_config: config.Config, path: []const u8) ?config.Repo {
-    for (app_config.repos.items) |repo| {
-        if (std.mem.eql(u8, repo.location, path)) {
-            return repo;
-        }
-    }
-    return null;
 }

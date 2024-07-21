@@ -66,6 +66,15 @@ pub const Config = struct {
         };
     }
 
+    pub fn match_repo(self: *Self, path: []const u8) ?Repo {
+        for (self.repos.items) |repo| {
+            if (std.mem.eql(u8, repo.location, path)) {
+                return repo;
+            }
+        }
+        return null;
+    }
+
     pub fn deinit(self: *Self) void {
         for (self.repos.items) |*repo| {
             repo.deinit(self.allocator);
