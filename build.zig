@@ -15,19 +15,18 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
+    const tomlz = b.dependency("tomlz", .{
+        .target = target,
+        .optimize = optimize,
+    });
+    const mod = tomlz.module("tomlz");
+
     const exe = b.addExecutable(.{
         .name = "ghh",
         .root_source_file = b.path("src/main.zig"),
         .target = target,
         .optimize = optimize,
     });
-
-    const tomlz = b.dependency("tomlz", .{
-        .target = target,
-        .optimize = optimize,
-    });
-
-    const mod = tomlz.module("tomlz");
 
     // add the tomlz module
     exe.root_module.addImport("tomlz", mod);

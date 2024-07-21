@@ -3,7 +3,7 @@ const tomlz = @import("tomlz");
 const util = @import("util.zig");
 const string = util.string;
 
-const GithubConfig = struct {
+pub const GithubConfig = struct {
     const Self = @This();
 
     username: string,
@@ -15,7 +15,7 @@ const GithubConfig = struct {
     }
 };
 
-const JiraConfig = struct {
+pub const JiraConfig = struct {
     const Self = @This();
 
     username: string,
@@ -29,7 +29,7 @@ const JiraConfig = struct {
     }
 };
 
-const Config = struct {
+pub const Config = struct {
     const Self = @This();
 
     github: GithubConfig,
@@ -76,7 +76,7 @@ const Config = struct {
     }
 };
 
-const Repo = struct {
+pub const Repo = struct {
     const Self = @This();
 
     gh_in_progress_column: i64,
