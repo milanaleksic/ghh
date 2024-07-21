@@ -25,11 +25,11 @@ pub const Jira = struct {
             .port = server_url.port,
             .path = .{ .raw = "/rest/api/2/search" },
             // TODO: how to encode this _correctly_
-            .query = .{ .percent_encoded = "jql=status%3D%22In%20Progress%22%20AND%20assignee%3DcurrentUser%28%29"},
+            .query = .{ .percent_encoded = "jql=status%3D%22In%20Progress%22%20AND%20assignee%3DcurrentUser%28%29" },
             .fragment = null,
         };
 
-        std.debug.print("Requesting {}\n", .{uri});
+        std.debug.print("Requesting {/?} on Jira\n", .{uri});
 
         var client = http.Client{
             .allocator = self.allocator,
@@ -41,6 +41,7 @@ pub const Jira = struct {
             .server_header_buffer = buf,
         });
         defer req.deinit();
+        req.headers.user_agent = .{ .override = "ghh" };
 
         try req.send();
         try req.finish();
