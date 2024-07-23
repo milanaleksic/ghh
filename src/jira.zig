@@ -1,21 +1,32 @@
 const std = @import("std");
 const config = @import("config.zig");
 const http = std.http;
+const util = @import("util.zig");
+const string = util.string;
 
-pub const Jira = struct {
+const JiraDTOSearchResult = struct {
+    issues: []struct {
+        key: string,
+        fields: struct {
+            summary: string,
+        },
+    },
+};
+
+pub const JiraService = struct {
     const Self = @This();
 
     cfg: config.JiraConfig,
     allocator: std.mem.Allocator,
 
-    pub fn init(allocator: std.mem.Allocator, cfg: config.JiraConfig) Self {
+    pub fn init(allocator: std.mem.Allocator, cfg: config.JiraConfig) !Self {
         return Self{
             .allocator = allocator,
             .cfg = cfg,
         };
     }
 
-    pub fn list_my_issues(self: Self) !void {
+    pub fn list_my_issues(self: *Self) !void {
         const server_url = try std.Uri.parse(self.cfg.url);
         const uri: std.Uri = .{
             .scheme = server_url.scheme,
@@ -48,13 +59,10 @@ pub const Jira = struct {
         try req.wait();
 
         if (req.response.status != .ok) {
-            std.debug.print("Request failed with status {d}\n", .{req.response.status});
             var rdr = req.reader();
-            const body = try rdr.readAllAlloc(self.allocator, 1024 * 1024 * 4);
+            const body = try rdr.readAllAlloc(self.allocator, 1024 * 4);
             defer self.allocator.free(body);
-
-            std.debug.print("Body:\n{s}\n", .{body});
-
+            std.debug.print("Request failed with status {d}, body: \n{s}\n", .{ req.response.status, body });
             return;
         }
 
@@ -62,6 +70,17 @@ pub const Jira = struct {
         const body = try rdr.readAllAlloc(self.allocator, 1024 * 1024 * 4);
         defer self.allocator.free(body);
 
-        std.debug.print("Body:\n{s}\n", .{body});
+        const parsed = try std.json.parseFromSlice(JiraDTOSearchResult, self.allocator, body, .{ .ignore_unknown_fields = true });
+        defer parsed.deinit();
+
+        const issues = parsed.value.issues;
+        std.debug.print("Got {d} owned issue\n", .{issues.len});
+        for (issues) |issue| {
+            std.debug.print("Found {s}: {s}\n", .{ issue.key, issue.fields.summary });
+            const writer = std.io.getStdOut().writer();
+            const stupified = try util.stupify(self.allocator, issue.fields.summary);
+            defer self.allocator.free(stupified);
+            try writer.print("{s}_{s}\n", .{ issue.key, stupified });
+        }
     }
 };

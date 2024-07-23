@@ -3,7 +3,7 @@ const process = std.process;
 const config = @import("config.zig");
 const util = @import("util.zig");
 const string = util.string;
-const Jira = @import("jira.zig").Jira;
+const JiraService = @import("jira.zig").JiraService;
 
 pub fn main() !void {
     var args = process.args();
@@ -33,7 +33,7 @@ pub fn main() !void {
 
     if (app_config.match_repo(path)) |repo| {
         if (repo.uses_jira) {
-            const jira = Jira.init(allocator, app_config.jira);
+            var jira = try JiraService.init(allocator, app_config.jira);
             try jira.list_my_issues();
         } else {
             std.debug.print("Repo uses Github\n", .{});
