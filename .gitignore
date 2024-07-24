@@ -1,4 +1,5 @@
 /target
 /config.toml
 .vscode/launch.json
-/graph.png
+/.zig-cache
+/.direnv

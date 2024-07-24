@@ -1,0 +1,39 @@
+name: Run all tests
+
+on:
+  push:
+    branches:
+      - 'master'
+    tags:
+      - '**'
+  pull_request:
+    types: [opened, synchronize, reopened]
+  workflow_dispatch:
+  schedule:
+    - cron:  '30 4 * * SAT'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: cachix/install-nix-action@v18
+        with:
+          nix_path: nixpkgs=channel:nixos-24.05
+      - uses: workflow/nix-shell-action@v3
+        with:
+          packages: zig
+          script: |
+            zig build test
+      - name: Send mail on failure
+        if: ${{ failure() || cancelled() }}
+        uses: https://github.com/dawidd6/action-send-mail@v3
+        with:
+          connection_url: ${{secrets.EMAIL_CONNECTION_URL}}
+          subject: Gitea Actions job failure
+          to: milanaleksic@gmail.com
+          from: Gitea Actions
+          body: |
+            Build job of ${{github.repository}} failed!
+            
+            More information: https://git.milanaleksic.net/${{ github.repository }}/actions/runs/${{ github.run_id }}
