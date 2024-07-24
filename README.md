@@ -1,25 +1,14 @@
 # Github Helper (ghh)
 
+## This project is in early development stage
+
 Utility application to help me with day-to-day work
 
 ```
-ghh 0.0.0
-Milan Aleksić <milan@aleksic.dev>
-
-USAGE:
-    ghh [FLAGS] <SUBCOMMAND>
-
-FLAGS:
-    -h, --help       Prints help information
-    -v, --verbose    A level of verbosity, and can be used multiple times
-    -V, --version    Prints version information
-
-SUBCOMMANDS:
-    branch-from-issue    Propose branch name based on actively assigned project cards in "In Progress" column
-    daily                Give run-down of all things done in the commits during the previous
-                         <days>
-    help                 Prints this message or the help of the given subcommand(s)
-    task-cleanup         Remove old project cards by archiving them
+❯ ghh help
+Usage: ghh [command]
+Commands:
+  branch_from_issue [-d <project_dir>]
 ```
 
 ## Configuration
