@@ -10,6 +10,25 @@ pub fn fatal(comptime fmt_string: []const u8, args: anytype) noreturn {
     std.process.exit(1);
 }
 
+var debug = false;
+
+pub fn setDebug(env: std.process.EnvMap) void {
+    if (env.get("DEBUG")) |dbg| {
+        if (std.mem.eql(u8, dbg, "1")) {
+            debug = true;
+        }
+    }
+}
+
+/// Format and print a debug message followed by the usage string to stderr,
+/// if the `DEBUG` environment variable is set to `1`.
+pub fn log_debug(comptime fmt_string: []const u8, args: anytype) void {
+    if (debug) {
+        const stderr = std.io.getStdErr().writer();
+        stderr.print("debug: " ++ fmt_string ++ "\n", args) catch {};
+    }
+}
+
 pub fn stupify(allocator: std.mem.Allocator, s: string) !string {
     var result = std.ArrayList(u8).init(allocator);
     defer result.deinit();

@@ -3,6 +3,8 @@ const config = @import("config.zig");
 const http = std.http;
 const util = @import("util.zig");
 const string = util.string;
+const fatal = util.fatal;
+const log_debug = util.log_debug;
 
 const JiraDTOSearchResult = struct {
     issues: []struct {
@@ -40,7 +42,7 @@ pub const JiraService = struct {
             .fragment = null,
         };
 
-        std.debug.print("Requesting {/?} on Jira\n", .{uri});
+        log_debug("Requesting {/?} on Jira", .{uri});
 
         var client = http.Client{
             .allocator = self.allocator,
@@ -62,7 +64,7 @@ pub const JiraService = struct {
             var rdr = req.reader();
             const body = try rdr.readAllAlloc(self.allocator, 1024 * 4);
             defer self.allocator.free(body);
-            std.debug.print("Request failed with status {d}, body: \n{s}\n", .{ req.response.status, body });
+            fatal("Request failed with status {d}, body: \n{s}\n", .{ req.response.status, body });
             return;
         }
 
@@ -74,9 +76,9 @@ pub const JiraService = struct {
         defer parsed.deinit();
 
         const issues = parsed.value.issues;
-        std.debug.print("Got {d} owned issue\n", .{issues.len});
+        log_debug("Got {d} owned issue", .{issues.len});
         for (issues) |issue| {
-            std.debug.print("Found {s}: {s}\n", .{ issue.key, issue.fields.summary });
+            log_debug("Found {s}: {s}", .{ issue.key, issue.fields.summary });
             const writer = std.io.getStdOut().writer();
             const stupified = try util.stupify(self.allocator, issue.fields.summary);
             defer self.allocator.free(stupified);

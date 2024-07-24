@@ -2,6 +2,7 @@ const std = @import("std");
 const config = @import("config.zig");
 const util = @import("util.zig");
 const string = util.string;
+const fatal = util.fatal;
 const JiraService = @import("jira.zig").JiraService;
 const args = @import("args.zig");
 
@@ -13,6 +14,10 @@ pub fn main() !void {
     defer arena.deinit();
 
     const allocator = arena.allocator();
+    var env = try std.process.getEnvMap(allocator);
+    defer env.deinit();
+
+    util.setDebug(env);
 
     const cli_args = try args.CliArgs.parse(allocator);
     switch (cli_args) {
@@ -28,10 +33,10 @@ pub fn main() !void {
                     var jira = try JiraService.init(allocator, app_config.jira);
                     try jira.list_my_issues();
                 } else {
-                    std.debug.print("Repo uses Github\n", .{});
+                    fatal("Repo uses Github, not supported yet\n", .{});
                 }
             } else {
-                std.debug.print("No repo config found in {s} for {s}\n", .{ config_path, value.dir });
+                fatal("No repo config found in {s} for {s}\n", .{ config_path, value.dir });
             }
         },
         .help => {
