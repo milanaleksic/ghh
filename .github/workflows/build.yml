@@ -20,30 +20,11 @@ jobs:
       - uses: cachix/install-nix-action@v18
         with:
           nix_path: nixpkgs=channel:nixos-24.05
-      - uses: workflow/nix-shell-action@v3
+      - uses: workflow/nix-shell-action@v3.3.2
         with:
           packages: zig
           script: |
             zig build test
-      - uses: workflow/nix-shell-action@v3
-        with:
-          packages: zig
-          script: |
-            zig build test
-            if [ "${GITHUB_REF}" == "refs/tags/*" ]; then
-              zig build -Doptimize=ReleaseSafe -Dtarget=aarch64-macos-none --summary all
-            fi
-      - uses: workflow/nix-shell-action@v3
-        if: ${{ ! startsWith(github.ref, 'refs/tags/') }}
-        with:
-          packages: zig
-          script: |
-            zig build -Doptimize=ReleaseSafe -Dtarget=aarch64-macos-none --summary all
-      - uses: actions/upload-artifact@v4
-        if: ${{ ! startsWith(github.ref, 'refs/tags/') }}
-        with:
-          name: my-artifact
-          path: ghh
 
   release:
     runs-on: ubuntu-latest
@@ -70,14 +51,18 @@ jobs:
       - uses: cachix/install-nix-action@v18
         with:
           nix_path: nixpkgs=channel:nixos-24.05
-      - uses: workflow/nix-shell-action@v3
+      - uses: workflow/nix-shell-action@v3.3.2
         env:
           target: ${{ matrix.target }}
         with:
           packages: zig
           script: |
-            zig build -Doptimize=ReleaseSafe -Dtarget=${{matrix.target}} --summary all && (cd zig-out/bin && zip ghh.zip ghh)
+            zig build -Doptimize=ReleaseSafe -Dtarget=${{matrix.target}} --summary all && (cd zig-out/bin && zip ${{matrix.name}} ghh)
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{matrix.name}}.zip
-          path: zig-out/bin/ghh.zip
+          name: ${{matrix.name}}
+          path: zig-out/bin/${{matrix.name}}
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            zig-out/bin/${{matrix.name}}
