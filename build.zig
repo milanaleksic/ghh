@@ -87,4 +87,14 @@ pub fn build(b: *std.Build) void {
     exe_check.root_module.addImport("tomlz", mod);
     const check = b.step("check", "Check if build-check compiles");
     check.dependOn(&exe_check.step);
+
+    const local_install = b.addExecutable(.{
+        .name = "local-install",
+        .root_source_file = b.path("src/main.zig"),
+        .target = target,
+        .optimize = .ReleaseSmall,
+    });
+    local_install.root_module.addImport("tomlz", mod);
+    const local_install_step = b.step("local-install", "Installs optimal binary locally");
+    local_install_step.dependOn(&local_install.step);
 }
