@@ -28,7 +28,7 @@ jobs:
 
   release:
     runs-on: ubuntu-latest
-#    if: ${{ ! startsWith(github.ref, 'refs/tags/') }}
+    if: ${{ ! startsWith(github.ref, 'refs/tags/') }}
     needs: [ test ]
     strategy:
       matrix:
