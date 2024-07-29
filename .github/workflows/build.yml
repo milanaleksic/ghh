@@ -39,7 +39,7 @@ jobs:
             name: ghh_darwin_x86_64.zip
           - target: x86_64-linux-musl
             name: ghh_linux_x86_64.zip
-          - target: aarch64_be-linux-musl
+          - target: aarch64-linux-musl
             name: ghh_linux_aarch64.zip
         target:
           - aarch64-macos-none
