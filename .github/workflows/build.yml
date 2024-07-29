@@ -41,11 +41,6 @@ jobs:
             name: ghh_linux_x86_64.zip
           - target: aarch64-linux-musl
             name: ghh_linux_aarch64.zip
-        target:
-          - aarch64-macos-none
-          - x86_64-macos-none
-          - x86_64-linux-musl
-          - aarch64_be-linux-musl
     steps:
       - uses: actions/checkout@v4
       - uses: cachix/install-nix-action@v18
