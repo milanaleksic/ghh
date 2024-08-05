@@ -23,7 +23,11 @@ pub fn main() !void {
     switch (cli_args) {
         .branch_from_issue => |value| {
             // TODO: figure out the default config path for the system
-            const config_path = "/Users/milan/Library/Application Support/ghh/config.toml";
+            const config_dir = try util.getDefaultConfigPath(allocator, env);
+            if (config_dir == null) {
+                fatal("No config directory found\n", .{});
+            }
+            const config_path = try std.fs.path.join(allocator, &[_][]const u8{ config_dir.?, "ghh", "config.toml" });
 
             var app_config = try config.parseConfig(allocator, config_path);
             defer app_config.deinit();
@@ -42,7 +46,8 @@ pub fn main() !void {
         .help => {
             std.debug.print("Usage: ghh [command]\n", .{});
             std.debug.print("Commands:\n", .{});
-            std.debug.print("  branch_from_issue [-d <project_dir>]\n", .{});
+            std.debug.print("  branch_from_issue [-d <project_dir>] - creates branch from an assigned issue\n", .{});
+            std.debug.print("  help - shows this text\n", .{});
         },
     }
 }

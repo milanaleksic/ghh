@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 
 pub const string = []const u8;
 
@@ -45,12 +46,29 @@ pub fn stupify(allocator: std.mem.Allocator, s: string) !string {
     return allocator.dupe(u8, result.items);
 }
 
+pub fn getDefaultConfigPath(allocator: std.mem.Allocator, env: std.process.EnvMap) !?[]const u8 {
+    switch (builtin.target.os.tag) {
+        .windows => env.get("APPDATA"),
+        .macos => {
+            if (env.get("HOME")) |home| {
+                return try std.fs.path.join(allocator, &[_][]const u8{ home, "Library", "Application Support" });
+            }
+        },
+        .linux => {
+            if (env.get("XDG_CONFIG_HOME")) |config_home| {
+                if (config_home.len > 0) return config_home;
+            }
+            if (env.get("HOME")) |home| {
+                return try std.fs.path.join(allocator, &[_][]const u8{ home, ".config" });
+            }
+        },
+        else => return error.UnsupportedOS,
+    }
+    return null;
+}
+
 test "stupification" {
     const conv = try stupify(std.testing.allocator, "🧑‍🔬 [SPIKE|IDEA] Do something extraordinary");
     defer std.testing.allocator.free(conv);
-    try std.testing.expectEqualSlices(
-        u8,
-        "spike_idea_do_something_extraordinary",
-        conv
-    );
+    try std.testing.expectEqualSlices(u8, "spike_idea_do_something_extraordinary", conv);
 }
