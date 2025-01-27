@@ -38,7 +38,7 @@ pub const JiraService = struct {
             .port = server_url.port,
             .path = .{ .raw = "/rest/api/2/search" },
             // TODO: how to encode this _correctly_
-            .query = .{ .percent_encoded = "jql=status%3D%22In%20Progress%22%20AND%20assignee%3DcurrentUser%28%29" },
+            .query = .{ .percent_encoded = "jql=status%20IN%20(\"To%20Do%20This%20Week\"%2C%20\"In%20Progress\")%20AND%20assignee%3DcurrentUser%28%29" },
             .fragment = null,
         };
 
